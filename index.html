@@ -674,14 +674,16 @@ function renderPreviews(){
 
 // Global paste
 document.addEventListener('paste',e=>{
-  if(document.activeElement?.tagName==='TEXTAREA')return;
+  const exitModalOpen=document.getElementById('exit-modal')?.classList.contains('show');
+  const editModalOpen=document.getElementById('edit-modal')?.classList.contains('show');
+  if(!exitModalOpen&&!editModalOpen&&document.activeElement?.tagName==='TEXTAREA')return;
   const items=Array.from(e.clipboardData?.items||[]).filter(i=>i.type.startsWith('image/'));
   if(!items.length)return;
-  const exitModalOpen=document.getElementById('exit-modal')?.classList.contains('show');
   const ph2=document.getElementById('ph2')?.style.display!=='none';
   items.forEach(item=>{
     const b=item.getAsFile();if(!b)return;
-    if(exitModalOpen) handleExitModalFiles([b]);
+    if(editModalOpen) handleEditImgFiles([b], editActiveZone);
+    else if(exitModalOpen) handleExitModalFiles([b]);
     else handleFiles([b],ph2?'exit':'entry');
   });
 });
@@ -1322,31 +1324,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeE
 
 // ===== INIT =====
 // Edit modal paste listener
-document.getElementById('edit-modal').addEventListener('paste',function(e){
-  const items=Array.from(e.clipboardData?.items||[]).filter(i=>i.type.startsWith('image/'));
-  if(!items.length)return;
-  e.stopPropagation();
-  handleEditImgFiles(items.map(i=>i.getAsFile()).filter(Boolean), editActiveZone);
-  const zone=document.getElementById('e-upload-'+editActiveZone);
-  if(zone){
-    zone.style.borderColor='var(--amber)';
-    zone.style.background='var(--accent-bg)';
-    setTimeout(()=>{zone.style.borderColor='';zone.style.background='';},800);
-  }
-});
-document.getElementById('edit-modal').addEventListener('mouseover',function(e){
-  const entry=document.getElementById('e-upload-entry');
-  const exit=document.getElementById('e-upload-exit');
-  if(entry&&entry.contains(e.target)){
-    editActiveZone='entry';
-    entry.style.outline='2px solid var(--amber)';
-    if(exit)exit.style.outline='';
-  } else if(exit&&exit.contains(e.target)){
-    editActiveZone='exit';
-    exit.style.outline='2px solid var(--amber)';
-    if(entry)entry.style.outline='';
-  }
-});
+
 
 if(window._fbReady){initFirebase();}
 else{window.addEventListener('fb-ready',initFirebase,{once:true});setTimeout(()=>{if(!window._fbReady)setSyncStatus('offline','離線模式');},5000);}
