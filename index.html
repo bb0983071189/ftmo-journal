@@ -572,9 +572,14 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
     <div style="margin-bottom:9px">
       <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">📸 進場截圖</div>
       <div class="img-grid-preview" id="e-img-entry-preview" style="margin-bottom:6px"></div>
-      <div class="img-upload-area" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleEditImgDrop(event,'entry')" style="padding:10px;min-height:60px">
+      <div class="img-upload-area" id="e-upload-entry"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleEditImgDrop(event,'entry')"
+        onclick="editActiveZone='entry'"
+        style="padding:10px;min-height:60px">
         <input type="file" id="e-img-entry-input" accept="image/*" multiple onchange="handleEditImgFiles(this.files,'entry')">
-        <div class="img-upload-hint" style="font-size:11px"><span style="font-size:14px">＋</span> 新增進場截圖</div>
+        <div class="img-upload-hint" style="font-size:11px"><span style="font-size:14px">＋</span> 新增進場截圖（或 Ctrl+V 貼上）</div>
       </div>
     </div>
 
@@ -582,9 +587,14 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
     <div style="margin-bottom:9px">
       <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">📸 出場截圖</div>
       <div class="img-grid-preview" id="e-img-exit-preview" style="margin-bottom:6px"></div>
-      <div class="img-upload-area" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleEditImgDrop(event,'exit')" style="padding:10px;min-height:60px">
+      <div class="img-upload-area" id="e-upload-exit"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleEditImgDrop(event,'exit')"
+        onclick="editActiveZone='exit'"
+        style="padding:10px;min-height:60px">
         <input type="file" id="e-img-exit-input" accept="image/*" multiple onchange="handleEditImgFiles(this.files,'exit')">
-        <div class="img-upload-hint" style="font-size:11px"><span style="font-size:14px">＋</span> 新增出場截圖</div>
+        <div class="img-upload-hint" style="font-size:11px"><span style="font-size:14px">＋</span> 新增出場截圖（或 Ctrl+V 貼上）</div>
       </div>
     </div>
 
@@ -1068,6 +1078,7 @@ function closeModal(){document.getElementById('detail-modal').classList.remove('
 // ===== EDIT =====
 let editingId=null;
 let editImgEntry=[], editImgExit=[];
+let editActiveZone='entry';
 
 function renderEditImgPreview(type){
   const imgs=type==='entry'?editImgEntry:editImgExit;
@@ -1107,6 +1118,7 @@ function openEditModal(id){
   editingId=id;
   editImgEntry=(t.images||[]).slice();
   editImgExit=(t.exitImages||[]).slice();
+  editActiveZone='entry';
   const set=(el,v)=>{const e=document.getElementById(el);if(e)e.value=v||'';};
   set('e-date',t.date);set('e-sym',t.symbol);document.getElementById('e-dir').value=t.dir||'做多';
   set('e-lots',t.lots);set('e-entry',t.entry);set('e-exit',t.exit);set('e-pnl',t.netPnl);
@@ -1312,7 +1324,9 @@ document.getElementById('edit-modal').addEventListener('paste',function(e){
   const items=Array.from(e.clipboardData?.items||[]).filter(i=>i.type.startsWith('image/'));
   if(!items.length)return;
   e.stopPropagation();
-  handleEditImgFiles(items.map(i=>i.getAsFile()).filter(Boolean),'entry');
+  handleEditImgFiles(items.map(i=>i.getAsFile()).filter(Boolean), editActiveZone);
+  const zone=document.getElementById('e-upload-'+editActiveZone);
+  if(zone){zone.style.borderColor='var(--amber)';setTimeout(()=>zone.style.borderColor='',1000);}
 });
 
 if(window._fbReady){initFirebase();}
