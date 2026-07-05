@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#d97706">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="FTMO日誌">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<title>FTMO 外匯日誌</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, setDoc, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyAUO2BQI1q3TOiYNQuKLwMUQz1xSMRTdeg",
+  authDomain: "hans-trading-journal.firebaseapp.com",
+  projectId: "hans-trading-journal",
+  storageBucket: "hans-trading-journal.firebasestorage.app",
+  messagingSenderId: "311247977837",
+  appId: "1:311247977837:web:314cc340fa11d81fa8ee64"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+const tradesCol = collection(db, 'ftmo_trades');
+window._fb = { db, tradesCol, setDoc, deleteDoc, doc, onSnapshot };
+window._fbReady = true;
+window.dispatchEvent(new Event('fb-ready'));
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fff;--bg2:#f8f9fb;--bg3:#f1f3f7;--bg4:#e8ebf0;
+  --border:#e2e6ed;--border2:#cdd3de;
+  --text:#1a1d23;--text2:#5a6478;--text3:#96a0b5;
+  --accent:#d97706;--accent2:#b45309;--accent-bg:#fffbeb;
+  --green:#059669;--green-bg:#ecfdf5;
+  --red:#dc2626;--red-bg:#fef2f2;
+  --amber:#d97706;--amber-bg:#fffbeb;
+  --blue:#2563eb;--blue-bg:#eff6ff;
+  --r:10px;--rs:6px;
+}
+body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.6;min-height:100vh}
+.nav{background:var(--bg);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.nav-brand{font-size:15px;font-weight:700;color:var(--text);padding:13px 16px 13px 0;border-right:1px solid var(--border);margin-right:6px}
+.nav-brand span{color:var(--amber)}
+.nav-tab{padding:13px 14px;font-size:13px;cursor:pointer;border:none;background:none;color:var(--text2);border-bottom:2px solid transparent;font-family:inherit;transition:all .15s}
+.nav-tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.nav-count{background:var(--accent-bg);color:var(--accent);font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;margin-left:4px}
+.sync-bar{display:flex;align-items:center;gap:5px;font-size:11px;padding:4px 10px;border-radius:999px;margin-left:auto;white-space:nowrap}
+.sync-bar.syncing{background:var(--blue-bg);color:var(--blue)}
+.sync-bar.synced{background:var(--green-bg);color:var(--green)}
+.sync-bar.error{background:var(--red-bg);color:var(--red)}
+.sync-bar.offline{background:var(--bg3);color:var(--text3)}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.sync-dot.pulse{animation:sp 1s ease-in-out infinite}
+@keyframes sp{0%,100%{opacity:1}50%{opacity:.25}}
+.page{display:none;padding:18px;max-width:900px;margin:0 auto}.page.on{display:block}
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.card-title{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.f{display:flex;flex-direction:column;gap:3px}
+.f label{font-size:11px;color:var(--text2);font-weight:500}
+.f input,.f select,.f textarea{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-size:13px;padding:7px 9px;width:100%;font-family:inherit;transition:border-color .15s}
+.f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--accent);background:#fff}
+.f textarea{resize:vertical;min-height:52px}
+.f .hint{font-size:10px;color:var(--text3)}
+.btn{padding:8px 18px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-family:inherit;transition:all .15s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn-p{background:var(--amber);color:#fff;border-color:var(--amber)}
+.btn-p:hover{background:var(--accent2);color:#fff}
+.btn-g{background:var(--green-bg);color:var(--green);border-color:#bbf7d0}
+.btn-r{background:var(--red-bg);color:var(--red);border-color:#fecaca}
+.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+/* Phase bar */
+.phase-bar{display:flex;background:var(--bg3);border-radius:var(--r);padding:4px;margin-bottom:18px;gap:4px;border:1px solid var(--border)}
+.ph-btn{flex:1;padding:8px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--text2);border-radius:var(--rs);font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .15s}
+.ph-btn.on{background:var(--bg);color:var(--text);border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.ph-dot{width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.dot-idle{background:var(--bg4);color:var(--text3);border:1px solid var(--border)}
+.dot-active{background:var(--accent-bg);color:var(--amber);border:1px solid var(--amber)}
+.dot-done{background:var(--green-bg);color:var(--green)}
+/* Strategies */
+.strat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px;margin-top:3px}
+.strat-btn{padding:10px;border-radius:var(--rs);font-size:12px;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text);text-align:left;font-family:inherit;transition:all .15s}
+.strat-btn .s1{font-weight:600;display:block;margin-bottom:2px}
+.strat-btn .s2{font-size:10px;color:var(--text3)}
+.strat-btn.on{background:var(--accent-bg);border-color:var(--amber);color:var(--amber)}
+.strat-btn.on .s2{color:#fbbf24}
+.strat-selected{font-size:11px;color:var(--text2);margin-top:6px;min-height:16px}
+/* Emotions */
+.em-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:3px}
+.em-btn{padding:8px 10px;border-radius:var(--rs);cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text);text-align:left;font-family:inherit;transition:all .15s}
+.em-btn .e1{font-size:11px;font-weight:600;display:block}
+.em-btn .e2{font-size:10px;color:var(--text3);display:block;margin-top:1px}
+.ec.on{background:var(--green-bg);border-color:#6ee7b7;color:var(--green)}
+.ee.on{background:var(--blue-bg);border-color:#93c5fd;color:var(--blue)}
+.ef.on{background:var(--amber-bg);border-color:#fcd34d;color:var(--amber)}
+.ea.on{background:var(--red-bg);border-color:#fca5a5;color:var(--red)}
+.er.on{background:#fff1f2;border-color:#fca5a5;color:#be123c}
+.et.on{background:var(--bg4);border-color:var(--border2);color:var(--text2)}
+/* Q items */
+.q-item{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:var(--rs);border:1px solid var(--border);margin-bottom:6px;background:var(--bg3)}
+.q-item.yes{border-color:#fca5a5;background:#fff5f5}
+.q-item.no{border-color:#6ee7b7;background:#f0fdf4}
+.q-text{font-size:13px;flex:1;line-height:1.5}
+.q-sub{font-size:10px;color:var(--text3)}
+.yn-row{display:flex;gap:5px;flex-shrink:0;margin-top:2px}
+.yn{padding:3px 12px;border-radius:999px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--bg4);color:var(--text2);font-family:inherit}
+.yn.y-on{background:var(--red-bg);color:var(--red);border-color:#fca5a5}
+.yn.n-on{background:var(--green-bg);color:var(--green);border-color:#6ee7b7}
+/* TP display */
+.tp-row-display{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.tp-box{background:var(--bg3);border-radius:var(--rs);padding:9px;border:1px solid var(--border)}
+.tp-box-lbl{font-size:10px;font-weight:600;margin-bottom:4px}
+.tp-box.b1 .tp-box-lbl{color:var(--blue)}
+.tp-box.b2 .tp-box-lbl{color:var(--green)}
+.tp-box.b3 .tp-box-lbl{color:var(--amber)}
+.tp-val{font-size:13px;font-weight:600;color:var(--text)}
+/* SL box */
+.sl-display{background:var(--red-bg);border:1px solid #fca5a5;border-radius:var(--rs);padding:8px 12px;margin-top:8px}
+.sl-display-lbl{font-size:10px;font-weight:600;color:var(--red);margin-bottom:3px}
+.sl-display-val{font-size:13px;font-weight:600;color:var(--red)}
+/* Score */
+.score-wrap{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.score-top{display:flex;align-items:center;gap:14px;padding:14px;background:var(--bg)}
+.score-circle{width:70px;height:70px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;border:2px solid}
+.sc-num{font-size:26px;font-weight:700;line-height:1}
+.sc-max{font-size:10px;margin-top:1px;opacity:.6}
+.sc-grade{font-size:15px;font-weight:700;margin-bottom:2px}
+.sc-summary{font-size:11px;color:var(--text2)}
+.score-bars{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:12px;background:var(--bg3);border-top:1px solid var(--border)}
+.sb-item{text-align:center}
+.sb-lbl{font-size:10px;color:var(--text3);margin-bottom:3px}
+.sb-val{font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px}
+.sb-bar-wrap{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.sb-bar{height:4px;border-radius:2px}
+.score-issues{padding:12px;background:var(--bg);border-top:1px solid var(--border)}
+.iss{padding:8px 11px;border-radius:var(--rs);font-size:12px;margin-bottom:5px;line-height:1.6;border-left:3px solid}
+.iss-d{background:#fef2f2;border-color:var(--red);color:#991b1b}
+.iss-w{background:var(--amber-bg);border-color:var(--amber);color:#92400e}
+.tag-f{display:inline-block;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;margin:2px;background:var(--red-bg);color:var(--red);border:1px solid #fca5a5}
+.tag-ok{display:inline-block;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;margin:2px;background:var(--green-bg);color:var(--green);border:1px solid #6ee7b7}
+/* Records */
+.rec-filters{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.fc{padding:5px 13px;border-radius:999px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--bg);color:var(--text2);transition:all .15s}
+.fc.on{background:var(--accent-bg);color:var(--accent);border-color:var(--amber)}
+.rec-item{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:7px;cursor:pointer;transition:border-color .15s;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.rec-item:hover{border-color:var(--amber)}
+.rec-top{display:flex;align-items:center;gap:7px;margin-bottom:6px;flex-wrap:wrap}
+.rec-sym{font-weight:700;font-size:14px}
+.rd{padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700}
+.dl{background:var(--green-bg);color:var(--green)}.ds{background:var(--red-bg);color:var(--red)}
+.rec-date{font-size:11px;color:var(--text3);margin-left:auto}
+.rec-bottom{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:5px;margin-top:6px}
+.rs .rl{font-size:10px;color:var(--text3);display:block}
+.rs .rv{font-size:12px;font-weight:600;color:var(--text)}
+.rv.pos{color:var(--green)}.rv.neg{color:var(--red)}
+.gb{display:inline-block;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700}
+.gS{background:var(--green-bg);color:var(--green)}.gA{background:var(--blue-bg);color:var(--blue)}
+.gB{background:var(--amber-bg);color:var(--amber)}.gC,.gD{background:var(--red-bg);color:var(--red)}
+/* Report */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px;margin-bottom:14px}
+.stat-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:13px}
+.stat-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.stat-val{font-size:22px;font-weight:700;color:var(--text)}
+.stat-val.pos{color:var(--green)}.stat-val.neg{color:var(--red)}.stat-val.pu{color:var(--amber)}
+.chart-wrap{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.chart-title{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em}
+.chart-container{position:relative;height:200px}
+.strat-filter-section{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.sf-btns{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.sf-btn{padding:6px 14px;border-radius:999px;font-size:12px;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);transition:all .15s;font-weight:500}
+.sf-btn.on{background:var(--accent-bg);border-color:var(--amber);color:var(--amber)}
+.strat-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.ss-card{background:var(--bg3);border-radius:var(--rs);padding:10px;text-align:center}
+.ss-lbl{font-size:10px;color:var(--text3);margin-bottom:3px}
+.ss-val{font-size:18px;font-weight:700;color:var(--text)}
+.ss-val.pos{color:var(--green)}.ss-val.neg{color:var(--red)}.ss-val.pu{color:var(--amber)}
+/* ── PNL CALENDAR ── */
+.cal-nav-btn{background:none;border:1px solid var(--border2);border-radius:var(--rs);width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:16px;line-height:1;transition:all .15s}
+.cal-nav-btn:hover{background:var(--bg3);color:var(--text)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-dow{text-align:center;font-size:10px;font-weight:600;color:var(--text3);padding:4px 0 6px;text-transform:uppercase;letter-spacing:.04em}
+.cal-cell{border-radius:var(--rs);padding:5px 4px 4px;min-height:54px;border:1px solid transparent;transition:border-color .12s,background .12s;position:relative}
+.cal-cell.has-trade{cursor:pointer}
+.cal-cell.has-trade:hover{border-color:var(--border2)}
+.cal-cell.other-month{opacity:.25;pointer-events:none}
+.cal-cell.today-cell{border-color:var(--border2);background:var(--bg2)}
+.cal-cell.profit-cell{background:var(--green-bg)}
+.cal-cell.loss-cell{background:var(--red-bg)}
+.cal-cell.zero-cell{background:var(--bg3)}
+.cal-day-num{font-size:11px;font-weight:600;color:var(--text2);line-height:1;display:block}
+.cal-cell.profit-cell .cal-day-num{color:var(--green)}
+.cal-cell.loss-cell .cal-day-num{color:var(--red)}
+.cal-day-pnl{font-size:10px;font-weight:500;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-cell.profit-cell .cal-day-pnl{color:var(--green)}
+.cal-cell.loss-cell .cal-day-pnl{color:var(--red)}
+.cal-day-count{font-size:9px;color:var(--text3);margin-top:2px}
+.cal-tooltip{display:none;position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);background:var(--text);color:#fff;font-size:11px;padding:5px 9px;border-radius:var(--rs);white-space:nowrap;z-index:50;pointer-events:none;line-height:1.6;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.cal-cell:hover .cal-tooltip{display:block}
+.cal-sum-item{background:var(--bg3);border-radius:var(--rs);padding:9px;text-align:center}
+.cal-sum-lbl{font-size:10px;color:var(--text3);margin-bottom:3px}
+.cal-sum-val{font-size:15px;font-weight:700;color:var(--text)}
+.cal-sum-val.pos{color:var(--green)}.cal-sum-val.neg{color:var(--red)}
+@media(max-width:480px){
+  .cal-cell{min-height:40px;padding:4px 3px 3px}
+  .cal-day-pnl,.cal-day-count{display:none}
+}
+
+/* Images */
+.img-upload-area{border:2px dashed var(--border2);border-radius:var(--rs);padding:16px;text-align:center;cursor:pointer;transition:all .15s;position:relative}
+.img-upload-area:hover,.img-upload-area.drag{border-color:var(--amber);background:var(--accent-bg)}
+.img-upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.img-upload-hint{font-size:12px;color:var(--text3);pointer-events:none}
+.img-upload-hint span{font-size:18px;display:block;margin-bottom:4px}
+.img-grid-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-top:9px}
+.img-thumb-wrap{position:relative;aspect-ratio:16/10;border-radius:var(--rs);overflow:hidden;border:1px solid var(--border)}
+.img-thumb-wrap img{width:100%;height:100%;object-fit:cover;cursor:pointer}
+.img-del{position:absolute;top:3px;right:3px;width:18px;height:18px;background:rgba(0,0,0,.6);border:none;border-radius:50%;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+/* Modal & Lightbox */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--bg);border-radius:var(--r);padding:18px;max-width:480px;width:92%;max-height:85vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.15)}
+.modal-title{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.modal-close{cursor:pointer;background:none;border:none;color:var(--text2);font-size:22px;line-height:1}
+.lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;flex-direction:column;align-items:center;justify-content:center}
+.lb.show{display:flex}
+.lb-close{position:fixed;top:12px;right:14px;background:rgba(255,255,255,.18);border:none;color:#fff;font-size:20px;width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lb-zoom-bar{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border-radius:999px;padding:5px 14px;margin-bottom:12px}
+.lb-zoom-btn{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:18px;width:30px;height:30px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lb-zoom-label{color:#fff;font-size:12px;min-width:40px;text-align:center}
+.lb-img-wrap{overflow:auto;max-width:96vw;max-height:76vh;border-radius:var(--r)}
+.lb-img-wrap img{display:block;transform-origin:0 0;max-width:none;max-height:none}
+.empty{text-align:center;padding:48px 20px;color:var(--text3)}
+.empty-icon{font-size:36px;margin-bottom:10px;opacity:.4}
+.info-bar{padding:9px 12px;background:var(--accent-bg);border:1px solid #fcd34d;border-radius:var(--rs);font-size:12px;color:var(--amber);margin-bottom:14px;line-height:1.6}
+
+/* OPEN POSITION */
+.badge-open{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;background:#fff3cd;color:#856404;border:1px solid #ffc107;animation:blink-border 2s ease-in-out infinite}
+@keyframes blink-border{0%,100%{border-color:#ffc107}50%{border-color:#fd7e14}}
+.rec-item.open-pos{border-left:3px solid #ffc107;background:linear-gradient(to right,#fffdf0,var(--bg))}
+
+@media(max-width:580px){
+  .g4{grid-template-columns:repeat(2,1fr)}
+  .em-grid{grid-template-columns:repeat(2,1fr)}
+  .page{padding:12px}
+}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-brand">FTMO <span>外匯日誌</span></div>
+  <button class="nav-tab on" onclick="showPage('entry')">記錄交易</button>
+  <button class="nav-tab" onclick="showPage('records')">紀錄 <span class="nav-count" id="nav-count">0</span></button>
+  <button class="nav-tab" onclick="showPage('report')">報表</button>
+  <div class="sync-bar offline" id="sync-bar">
+    <span class="sync-dot" id="sync-dot"></span>
+    <span id="sync-txt">連線中…</span>
+  </div>
+</nav>
+
+<!-- ENTRY PAGE -->
+<div class="page on" id="page-entry">
+
+  <div class="phase-bar">
+    <button class="ph-btn on" onclick="goPhase(1)" id="pb1"><span class="ph-dot dot-active" id="pd1">1</span> 進場前填寫</button>
+    <button class="ph-btn" onclick="goPhase(2)" id="pb2"><span class="ph-dot dot-idle" id="pd2">2</span> 出場後填寫</button>
+    <button class="ph-btn" onclick="goPhase(3)" id="pb3"><span class="ph-dot dot-idle" id="pd3">3</span> 評分報告</button>
+  </div>
+
+  <!-- PH1 -->
+  <div id="ph1">
+    <div class="card">
+      <div class="card-title">基本資料</div>
+      <div class="g3">
+        <div class="f"><label>交易品種</label><input type="text" id="p1-sym" placeholder="EURUSD、XAUUSD…"></div>
+        <div class="f"><label>日期</label><input type="date" id="p1-date"></div>
+        <div class="f"><label>進場時間</label><input type="time" id="p1-etime"></div>
+      </div>
+      <div class="g4" style="margin-top:9px">
+        <div class="f"><label>方向</label>
+          <select id="p1-dir">
+            <option value="">選擇</option><option>做多</option><option>做空</option>
+          </select>
+        </div>
+        <div class="f"><label>手數 (Lots)</label>
+          <input type="number" id="p1-lots" placeholder="0.01" min="0.01" step="0.01" inputmode="decimal">
+        </div>
+        <div class="f"><label>進場價</label>
+          <input type="number" id="p1-entry" placeholder="0.00000" step="any" inputmode="decimal">
+        </div>
+        <div class="f"><label>停損價 (SL)</label>
+          <input type="number" id="p1-sl" placeholder="0.00000" step="any" inputmode="decimal" oninput="updateSLDisplay()">
+        </div>
+      </div>
+      <div class="g3" style="margin-top:9px">
+        <div class="f"><label>TP1</label><input type="number" id="p1-tp1" placeholder="—" step="any" inputmode="decimal" oninput="updateTPDisplay()"></div>
+        <div class="f"><label>TP2</label><input type="number" id="p1-tp2" placeholder="—" step="any" inputmode="decimal" oninput="updateTPDisplay()"></div>
+        <div class="f"><label>TP3</label><input type="number" id="p1-tp3" placeholder="—" step="any" inputmode="decimal" oninput="updateTPDisplay()"></div>
+      </div>
+      <div class="g2" style="margin-top:9px">
+        <div class="f">
+          <label>最大可接受虧損 (USD)</label>
+          <input type="number" id="p1-maxloss" placeholder="例如：-50" step="any" inputmode="decimal" oninput="updateRR()">
+          <span class="hint">這筆交易我最多願意虧損多少，超過就出場</span>
+        </div>
+        <div class="f">
+          <label>預期報酬 (USD，選填）</label>
+          <input type="number" id="p1-target" placeholder="例如：150" step="any" inputmode="decimal" oninput="updateRR()">
+        </div>
+      </div>
+      <!-- Risk/Reward display -->
+      <div id="rr-display" style="display:none;margin-top:8px;padding:8px 12px;background:var(--accent-bg);border:1px solid #fcd34d;border-radius:var(--rs);display:flex;gap:16px;flex-wrap:wrap">
+        <div><span style="font-size:10px;color:var(--amber);font-weight:600">最大虧損</span><div id="rr-loss" style="font-size:14px;font-weight:700;color:var(--red)">—</div></div>
+        <div><span style="font-size:10px;color:var(--amber);font-weight:600">預期報酬</span><div id="rr-gain" style="font-size:14px;font-weight:700;color:var(--green)">—</div></div>
+        <div><span style="font-size:10px;color:var(--amber);font-weight:600">風報比</span><div id="rr-ratio" style="font-size:14px;font-weight:700;color:var(--amber)">—</div></div>
+      </div>
+      <!-- TP display -->
+      <div class="tp-row-display" id="tp-display" style="display:none">
+        <div class="tp-box b1"><div class="tp-box-lbl">TP1</div><div class="tp-val" id="tpd1">—</div></div>
+        <div class="tp-box b2"><div class="tp-box-lbl">TP2</div><div class="tp-val" id="tpd2">—</div></div>
+        <div class="tp-box b3"><div class="tp-box-lbl">TP3</div><div class="tp-val" id="tpd3">—</div></div>
+      </div>
+      <!-- SL display -->
+      <div class="sl-display" id="sl-display" style="display:none">
+        <div class="sl-display-lbl">停損位</div>
+        <div class="sl-display-val" id="sld">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">交易策略（可複選）</div>
+      <div class="strat-grid">
+        <button class="strat-btn" onclick="toggleStrat(this,'MLST')"><span class="s1">MLST</span><span class="s2">MLST 外匯策略系統</span></button>
+        <button class="strat-btn" onclick="toggleStrat(this,'布林均線')"><span class="s1">布林均線</span><span class="s2">均線 + 布林通道</span></button>
+        <button class="strat-btn" onclick="toggleStrat(this,'其他策略')"><span class="s1">其他策略</span><span class="s2">不在上述分類</span></button>
+      </div>
+      <div class="strat-selected" id="strat-selected">尚未選擇策略</div>
+      <div class="g2" style="margin-top:9px">
+        <div class="f"><label>分析週期</label>
+          <select id="p1-tf"><option value="">選擇</option><option>1m</option><option>5m</option><option>15m</option><option>1h</option><option>4h</option><option>1D</option></select>
+        </div>
+      </div>
+      <div style="margin-top:9px"><div class="f"><label>進場理由</label><textarea id="p1-reason" placeholder="訊號、形態、觸發條件…"></textarea></div></div>
+      <!-- Entry screenshots -->
+      <div style="margin-top:9px">
+        <div style="font-size:11px;color:var(--text2);font-weight:500;margin-bottom:5px">📸 進場截圖</div>
+        <div class="img-upload-area" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event,'entry')">
+          <input type="file" id="img-entry" accept="image/*" multiple onchange="handleFiles(this.files,'entry')">
+          <div class="img-upload-hint"><span>🖼</span>點擊或拖曳上傳，Ctrl+V 貼上</div>
+        </div>
+        <div class="img-grid-preview" id="preview-entry"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">進場前確認</div>
+      <div class="q-item" id="q1-plan"><div class="q-text">有沒有想好 SL 和 TP 才進場？<div class="q-sub">「有感覺就進」→ 選沒有</div></div><div class="yn-row"><button class="yn" onclick="qa('q1-plan','y',this,'p1HasPlan')">有</button><button class="yn" onclick="qa('q1-plan','n',this,'p1HasPlan')">沒有</button></div></div>
+      <div class="q-item" id="q1-sl"><div class="q-text">有沒有在平台上實際掛上停損單？<div class="q-sub">只在心裡想好不算</div></div><div class="yn-row"><button class="yn" onclick="qa('q1-sl','y',this,'p1HasSL')">有掛</button><button class="yn" onclick="qa('q1-sl','n',this,'p1HasSL')">沒掛</button></div></div>
+      <div class="q-item" id="q1-bigtf"><div class="q-text">進場前有沒有先看 1h 或 4h 確認大方向？<div class="q-sub">只看小週期就進 → 選沒有</div></div><div class="yn-row"><button class="yn" onclick="qa('q1-bigtf','y',this,'p1BigTF')">有看</button><button class="yn" onclick="qa('q1-bigtf','n',this,'p1BigTF')">沒有</button></div></div>
+      <div class="q-item" id="q1-chase"><div class="q-text">進場時有沒有追漲殺跌？<div class="q-sub">「早知道剛才就進了，現在追」→ 選是</div></div><div class="yn-row"><button class="yn" onclick="qa('q1-chase','y',this,'p1Chase')">有</button><button class="yn" onclick="qa('q1-chase','n',this,'p1Chase')">沒有</button></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">進場前情緒</div>
+      <div class="em-grid">
+        <button class="em-btn ec" id="em0" onclick="selEm(0,'冷靜自信')"><span class="e1">冷靜清晰</span><span class="e2">有計畫，不慌不忙</span></button>
+        <button class="em-btn ee" id="em1" onclick="selEm(1,'略為興奮')"><span class="e1">有點興奮</span><span class="e2">覺得這筆很有機會</span></button>
+        <button class="em-btn ef" id="em2" onclick="selEm(2,'FOMO 衝動')"><span class="e1">怕錯過</span><span class="e2">看到行情就追進去</span></button>
+        <button class="em-btn ea" id="em3" onclick="selEm(3,'焦慮不安')"><span class="e1">焦慮不安</span><span class="e2">不確定但還是進了</span></button>
+        <button class="em-btn er" id="em4" onclick="selEm(4,'報復交易')"><span class="e1">想賺回來</span><span class="e2">上一筆虧損後進的</span></button>
+        <button class="em-btn et" id="em5" onclick="selEm(5,'疲憊')"><span class="e1">很累還是做</span><span class="e2">已經盯盤很久了</span></button>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-p" onclick="saveEntryNow()">💾 儲存進場，等待出場 →</button>
+    </div>
+  </div>
+
+  <!-- PH2 -->
+  <div id="ph2" style="display:none">
+    <div class="info-bar">這一頁在<strong>出場之後</strong>填寫。</div>
+    <div class="card">
+      <div class="card-title">出場結果</div>
+      <div class="g3">
+        <div class="f"><label>出場價格</label><input type="number" id="p2-exit" placeholder="0.00000" step="any" inputmode="decimal"></div>
+        <div class="f"><label>出場時間</label><input type="time" id="p2-xtime"></div>
+        <div class="f"><label>出場原因</label>
+          <select id="p2-xr">
+            <option value="">選擇</option>
+            <option value="tp1">止盈 TP1</option>
+            <option value="tp2">止盈 TP2</option>
+            <option value="tp3">止盈 TP3</option>
+            <option value="be">平保（保本）</option>
+            <option value="sl">止損 SL</option>
+            <option value="manual">手動出場</option>
+          </select>
+        </div>
+      </div>
+      <div class="g2" style="margin-top:9px">
+        <div class="f">
+          <label>損益（手動填寫，USD）</label>
+          <input type="number" id="p2-pnl" placeholder="正為獲利，負為虧損" step="any" inputmode="decimal">
+          <span class="hint">請直接填入平台上顯示的損益金額</span>
+        </div>
+        <div class="f">
+          <label>手續費（選填，USD）</label>
+          <input type="number" id="p2-fee" placeholder="0.00" step="any" inputmode="decimal">
+        </div>
+      </div>
+      <!-- Exit screenshots -->
+      <div style="margin-top:12px">
+        <div style="font-size:11px;color:var(--text2);font-weight:500;margin-bottom:5px">📸 出場截圖</div>
+        <div class="img-upload-area" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event,'exit')">
+          <input type="file" id="img-exit" accept="image/*" multiple onchange="handleFiles(this.files,'exit')">
+          <div class="img-upload-hint"><span>🖼</span>點擊或拖曳上傳，Ctrl+V 貼上</div>
+        </div>
+        <div class="img-grid-preview" id="preview-exit"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">出場後回顧</div>
+      <div class="q-item" id="q2-hold"><div class="q-text">停損位破了有沒有繼續扛著？<div class="q-sub">「再等等，應該會反彈」→ 選有</div></div><div class="yn-row"><button class="yn" onclick="qa('q2-hold','y',this,'p2Hold')">有扛</button><button class="yn" onclick="qa('q2-hold','n',this,'p2Hold')">沒有</button></div></div>
+      <div class="q-item" id="q2-avg"><div class="q-text">虧損過程中有沒有繼續加倉攤平？</div><div class="yn-row"><button class="yn" onclick="qa('q2-avg','y',this,'p2Avg')">有</button><button class="yn" onclick="qa('q2-avg','n',this,'p2Avg')">沒有</button></div></div>
+      <div class="q-item" id="q2-tpm"><div class="q-text">達到 TP1 後有沒有把停損移到進場價？</div><div class="yn-row"><button class="yn" onclick="qa('q2-tpm','y',this,'p2TpM')">有移</button><button class="yn" onclick="qa('q2-tpm','n',this,'p2TpM')">沒有</button></div></div>
+      <div class="q-item" id="q2-follow"><div class="q-text">整體有沒有按照計畫執行？</div><div class="yn-row"><button class="yn" onclick="qa('q2-follow','y',this,'p2Follow')">有</button><button class="yn" onclick="qa('q2-follow','n',this,'p2Follow')">沒有</button></div></div>
+      <div style="margin-top:9px"><div class="f"><label>複盤筆記</label><textarea id="p2-notes" placeholder="這筆讓你學到什麼？下次怎麼做？"></textarea></div></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="goPhase(1)">← 回去修改</button>
+      <button class="btn btn-p" onclick="genReport()">產生評分報告 →</button>
+    </div>
+  </div>
+
+  <!-- PH3 -->
+  <div id="ph3" style="display:none">
+    <div class="score-wrap">
+      <div class="score-top">
+        <div class="score-circle" id="sc-circle"><span class="sc-num" id="sc-num">—</span><span class="sc-max">/100</span></div>
+        <div><div class="sc-grade" id="sc-grade">—</div><div class="sc-summary" id="sc-summary">—</div></div>
+      </div>
+      <div class="score-bars">
+        <div class="sb-item"><div class="sb-lbl">事前計畫</div><div class="sb-val" id="sb-plan">—</div><div class="sb-bar-wrap"><div class="sb-bar" id="bar-plan" style="width:0;background:var(--accent)"></div></div></div>
+        <div class="sb-item"><div class="sb-lbl">風險控制</div><div class="sb-val" id="sb-risk">—</div><div class="sb-bar-wrap"><div class="sb-bar" id="bar-risk" style="width:0;background:var(--green)"></div></div></div>
+        <div class="sb-item"><div class="sb-lbl">執行紀律</div><div class="sb-val" id="sb-exec">—</div><div class="sb-bar-wrap"><div class="sb-bar" id="bar-exec" style="width:0;background:var(--amber)"></div></div></div>
+      </div>
+      <div class="score-issues">
+        <div style="margin-bottom:7px"><div style="font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:500">發現的問題</div><div id="sc-tags"></div></div>
+        <div id="sc-issues"></div>
+        <div style="margin-top:9px;padding-top:9px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:3px;font-weight:500">總結</div>
+          <div id="sc-msg" style="font-size:12px;line-height:1.7"></div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="goPhase(2)">← 修改出場資料</button>
+      <button class="btn btn-g" onclick="saveTrade()">儲存，記錄下一筆 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECORDS PAGE -->
+<div class="page" id="page-records">
+  <div class="rec-filters">
+    <button class="fc on" onclick="setF(this,'all')">全部</button>
+    <button class="fc" onclick="setF(this,'7d')">近 7 天</button>
+    <button class="fc" onclick="setF(this,'30d')">近 30 天</button>
+    <button class="fc" onclick="setF(this,'win')">獲利</button>
+    <button class="fc" onclick="setF(this,'loss')">虧損</button>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn btn-g" onclick="exportCSV()" style="padding:5px 11px;font-size:12px">匯出 CSV</button>
+      <button class="btn btn-r" onclick="clearAll()" style="padding:5px 11px;font-size:12px">清除全部</button>
+    </div>
+  </div>
+  <div id="rec-list"></div>
+</div>
+
+<!-- REPORT PAGE -->
+<div class="page" id="page-report">
+  <div class="rec-filters" id="rep-time-filters">
+    <button class="fc on" onclick="setRF(this,'all')">全部</button>
+    <button class="fc" onclick="setRF(this,'7d')">近 7 天</button>
+    <button class="fc" onclick="setRF(this,'30d')">近 30 天</button>
+  </div>
+  <div class="stat-grid" id="stat-grid"></div>
+  <div class="chart-wrap"><div class="chart-title">損益曲線（累積 USD）</div><div class="chart-container"><canvas id="chart-pnl"></canvas></div></div>
+
+  <!-- PNL CALENDAR -->
+  <div class="chart-wrap" style="padding:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div class="chart-title" style="margin-bottom:0">盈虧日曆</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button class="cal-nav-btn" onclick="calPrev()">&#8249;</button>
+        <span id="cal-label" style="font-size:13px;font-weight:600;min-width:90px;text-align:center"></span>
+        <button class="cal-nav-btn" onclick="calNext()">&#8250;</button>
+        <button class="cal-nav-btn" onclick="calToday()" style="width:auto;padding:0 10px;font-size:11px">今月</button>
+      </div>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <!-- Monthly summary -->
+    <div id="cal-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"></div>
+    <!-- Legend -->
+    <div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap">
+      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><span style="width:12px;height:12px;border-radius:3px;background:var(--green-bg);border:1px solid var(--green);display:inline-block"></span>獲利日</span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><span style="width:12px;height:12px;border-radius:3px;background:var(--red-bg);border:1px solid var(--red);display:inline-block"></span>虧損日</span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><span style="width:12px;height:12px;border-radius:3px;background:var(--bg3);border:1px solid var(--border2);display:inline-block"></span>平保/交易日</span>
+    </div>
+  </div>
+
+  <div class="strat-filter-section">
+    <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">策略篩選</div>
+    <div class="sf-btns">
+      <button class="sf-btn on" onclick="setSF(this,'all')">全部</button>
+      <button class="sf-btn" onclick="setSF(this,'MLST')">MLST</button>
+      <button class="sf-btn" onclick="setSF(this,'布林均線')">布林均線</button>
+      <button class="sf-btn" onclick="setSF(this,'其他策略')">其他策略</button>
+    </div>
+    <div class="strat-stats">
+      <div class="ss-card"><div class="ss-lbl">篩選筆數</div><div class="ss-val" id="sf-n">—</div></div>
+      <div class="ss-card"><div class="ss-lbl">勝率</div><div class="ss-val" id="sf-wr">—</div></div>
+      <div class="ss-card"><div class="ss-lbl">總損益</div><div class="ss-val" id="sf-pnl">—</div></div>
+      <div class="ss-card"><div class="ss-lbl">平均評分</div><div class="ss-val pu" id="sf-score">—</div></div>
+    </div>
+    <div class="chart-wrap" style="margin-top:12px;margin-bottom:0"><div class="chart-title">策略篩選損益曲線</div><div class="chart-container"><canvas id="chart-sf"></canvas></div></div>
+  </div>
+  <div class="chart-wrap"><div class="chart-title">各策略損益比較</div><div class="chart-container"><canvas id="chart-strat"></canvas></div></div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-title"><span id="modal-ttl">交易詳情</span><button class="modal-close" onclick="closeModal()">×</button></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title"><span>編輯交易紀錄</span><button class="modal-close" onclick="closeEditModal()">×</button></div>
+    <div class="g3" style="margin-bottom:9px">
+      <div class="f"><label>日期</label><input type="date" id="e-date"></div>
+      <div class="f"><label>品種</label><input type="text" id="e-sym"></div>
+      <div class="f"><label>方向</label><select id="e-dir"><option>做多</option><option>做空</option></select></div>
+    </div>
+    <div class="g4" style="margin-bottom:9px">
+      <div class="f"><label>手數</label><input type="number" id="e-lots" step="0.01"></div>
+      <div class="f"><label>進場價</label><input type="number" id="e-entry" step="any"></div>
+      <div class="f"><label>出場價</label><input type="number" id="e-exit" step="any"></div>
+      <div class="f"><label>損益 (USD)</label><input type="number" id="e-pnl" step="any"></div>
+    </div>
+    <div class="g3" style="margin-bottom:9px">
+      <div class="f"><label>TP1</label><input type="number" id="e-tp1" step="any"></div>
+      <div class="f"><label>TP2</label><input type="number" id="e-tp2" step="any"></div>
+      <div class="f"><label>TP3</label><input type="number" id="e-tp3" step="any"></div>
+    </div>
+    <div class="g2" style="margin-bottom:9px">
+      <div class="f"><label>停損 (SL)</label><input type="number" id="e-sl" step="any"></div>
+      <div class="f"><label>手續費 (USD)</label><input type="number" id="e-fee" step="any"></div>
+    </div>
+    <div class="f" style="margin-bottom:9px"><label>進場理由</label><input type="text" id="e-reason"></div>
+    <div class="f" style="margin-bottom:9px"><label>複盤筆記</label><textarea id="e-notes" style="min-height:52px"></textarea></div>
+
+    <!-- 進場截圖管理 -->
+    <div style="margin-bottom:9px">
+      <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">📸 進場截圖</div>
+      <div class="img-grid-preview" id="e-img-entry-preview" style="margin-bottom:6px"></div>
+      <div class="img-upload-area" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleEditImgDrop(event,'entry')" style="padding:10px;min-height:60px">
+        <input type="file" id="e-img-entry-input" accept="image/*" multiple onchange="handleEditImgFiles(this.files,'entry')">
+        <div class="img-upload-hint" style="font-size:11px"><span style="font-size:14px">＋</span> 新增進場截圖</div>
+      </div>
+    </div>
+
+    <!-- 出場截圖管理 -->
+    <div style="margin-bottom:9px">
+      <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">📸 出場截圖</div>
+      <div class="img-grid-preview" id="e-img-exit-preview" style="margin-bottom:6px"></div>
+      <div class="img-upload-area" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleEditImgDrop(event,'exit')" style="padding:10px;min-height:60px">
+        <input type="file" id="e-img-exit-input" accept="image/*" multiple onchange="handleEditImgFiles(this.files,'exit')">
+        <div class="img-upload-hint" style="font-size:11px"><span style="font-size:14px">＋</span> 新增出場截圖</div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn" onclick="closeEditModal()">取消</button>
+      <button class="btn btn-p" onclick="saveEdit()">儲存修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lb" id="lb">
+  <button class="lb-close" onclick="closeLb()">×</button>
+  <div class="lb-zoom-bar">
+    <button class="lb-zoom-btn" onclick="lbZoom(-0.25)">－</button>
+    <span class="lb-zoom-label" id="lb-zoom-label">100%</span>
+    <button class="lb-zoom-btn" onclick="lbZoom(0.25)">＋</button>
+    <button class="lb-zoom-btn" onclick="lbReset()" style="font-size:11px;padding:0 8px">重置</button>
+  </div>
+  <div class="lb-img-wrap" id="lb-img-wrap" onclick="closeLb()">
+    <img id="lb-img" src="" alt="" onclick="event.stopPropagation()">
+  </div>
+</div>
+
+<script>
+// ===== CLOUDINARY =====
+const CLD_CLOUD='dev6ezu2n', CLD_PRESET='tawybyjy';
+const CLD_URL=`https://api.cloudinary.com/v1_1/${CLD_CLOUD}/image/upload`;
+
+async function uploadImg(file){
+  const fd=new FormData();
+  fd.append('file',file);fd.append('upload_preset',CLD_PRESET);fd.append('folder','ftmo_journal');
+  setSyncStatus('syncing','上傳圖片…');
+  const res=await fetch(CLD_URL,{method:'POST',body:fd});
+  if(!res.ok)throw new Error('upload failed');
+  const d=await res.json();
+  setSyncStatus('synced','圖片已上傳 ✓');
+  return d.secure_url;
+}
+
+// ===== IMAGE STATE =====
+let imgEntry=[], imgExit=[];
+
+function handleFiles(files, type){
+  Array.from(files).forEach(f=>{
+    if(!f.type.startsWith('image/'))return;
+    uploadImg(f).then(url=>{
+      if(type==='entry')imgEntry.push(url); else imgExit.push(url);
+      renderPreviews();
+    }).catch(()=>{
+      const r=new FileReader();r.onload=e=>{if(type==='entry')imgEntry.push(e.target.result);else imgExit.push(e.target.result);renderPreviews();};r.readAsDataURL(f);
+    });
+  });
+}
+function handleDrop(e, type){
+  e.preventDefault();e.currentTarget.classList.remove('drag');
+  handleFiles(e.dataTransfer.files,type);
+}
+function removeImg(type,idx){
+  if(type==='entry')imgEntry.splice(idx,1); else imgExit.splice(idx,1);
+  renderPreviews();
+}
+function renderPreviews(){
+  ['entry','exit'].forEach(type=>{
+    const imgs=type==='entry'?imgEntry:imgExit;
+    const grid=document.getElementById('preview-'+type);
+    if(!grid)return;
+    grid.innerHTML=imgs.map((src,i)=>`
+      <div class="img-thumb-wrap">
+        <img src="${src}" onclick="openLb('${src.replace(/'/g,"\\'")}')" title="點擊放大">
+        <button class="img-del" onclick="removeImg('${type}',${i})">×</button>
+      </div>`).join('');
+  });
+}
+
+// Global paste
+document.addEventListener('paste',e=>{
+  if(document.activeElement?.tagName==='TEXTAREA')return;
+  const items=Array.from(e.clipboardData?.items||[]).filter(i=>i.type.startsWith('image/'));
+  if(!items.length)return;
+  const exitModalOpen=document.getElementById('exit-modal')?.classList.contains('show');
+  const ph2=document.getElementById('ph2')?.style.display!=='none';
+  items.forEach(item=>{
+    const b=item.getAsFile();if(!b)return;
+    if(exitModalOpen) handleExitModalFiles([b]);
+    else handleFiles([b],ph2?'exit':'entry');
+  });
+});
+
+// ===== LIGHTBOX =====
+let lbScale=1;
+function openLb(src){
+  lbScale=1;
+  const img=document.getElementById('lb-img');img.src=src;img.style.width='';img.style.height='';
+  document.getElementById('lb-zoom-label').textContent='100%';
+  document.getElementById('lb').classList.add('show');
+}
+function closeLb(){document.getElementById('lb').classList.remove('show');document.getElementById('lb-img').src='';}
+function lbZoom(d){
+  lbScale=Math.max(0.25,Math.min(5,lbScale+d));
+  const img=document.getElementById('lb-img');
+  img.style.width=(img.naturalWidth*lbScale)+'px';img.style.height=(img.naturalHeight*lbScale)+'px';
+  document.getElementById('lb-zoom-label').textContent=Math.round(lbScale*100)+'%';
+}
+function lbReset(){lbScale=1;const img=document.getElementById('lb-img');img.style.width='';img.style.height='';document.getElementById('lb-zoom-label').textContent='100%';}
+
+// ===== FIREBASE SYNC =====
+let trades=JSON.parse(localStorage.getItem('ftmo_v1')||'[]');
+
+function saveLS(){localStorage.setItem('ftmo_v1',JSON.stringify(trades));document.getElementById('nav-count').textContent=trades.length;}
+
+function setSyncStatus(state,txt){
+  const bar=document.getElementById('sync-bar'),dot=document.getElementById('sync-dot'),lbl=document.getElementById('sync-txt');
+  if(!bar)return;
+  bar.className='sync-bar '+state;dot.className='sync-dot'+(state==='syncing'?' pulse':'');lbl.textContent=txt;
+}
+
+async function fbSave(t){
+  if(!window._fbReady)return;
+  setSyncStatus('syncing','同步中…');
+  try{
+    const {setDoc,doc,tradesCol}=window._fb;
+    await setDoc(doc(tradesCol,String(t.id)),{...t,_updatedAt:Date.now()});
+    setSyncStatus('synced','已同步 ✓');
+  }catch(e){setSyncStatus('error','同步失敗');}
+}
+
+async function fbDelete(id){
+  if(!window._fbReady)return;
+  setSyncStatus('syncing','同步中…');
+  try{
+    const {deleteDoc,doc,tradesCol}=window._fb;
+    await deleteDoc(doc(tradesCol,String(id)));
+    setSyncStatus('synced','已同步 ✓');
+  }catch(e){setSyncStatus('error','同步失敗');}
+}
+
+function initFirebase(){
+  if(!window._fbReady){setSyncStatus('offline','載入中');return;}
+  const {onSnapshot,tradesCol}=window._fb;
+  setSyncStatus('syncing','連線中…');
+  onSnapshot(tradesCol,snap=>{
+    const remote=snap.docs.map(d=>({...d.data(),id:Number(d.id)||d.id}));
+    remote.sort((a,b)=>b.id-a.id);
+    trades=remote;
+    saveLS();renderRec();
+    if(document.getElementById('page-report').classList.contains('on'))renderRep();
+    setSyncStatus('synced','已同步 ✓');
+  },err=>{setSyncStatus('error','連線失敗');});
+}
+
+// ===== FORM STATE =====
+const S={strats:[],emotion:'',p1HasPlan:null,p1HasSL:null,p1BigTF:null,p1Chase:null,p2Hold:null,p2Avg:null,p2TpM:null,p2Follow:null};
+
+function gv(id){return(document.getElementById(id)||{}).value||''}
+function gf(id){return parseFloat(document.getElementById(id)?.value)||0}
+function sv(id,v){const el=document.getElementById(id);if(!el)return;'INPUT TEXTAREA'.includes(el.tagName)?el.value=v:el.textContent=v;}
+
+function updateTPDisplay(){
+  const tp1=gv('p1-tp1'),tp2=gv('p1-tp2'),tp3=gv('p1-tp3');
+  const hasAny=tp1||tp2||tp3;
+  document.getElementById('tp-display').style.display=hasAny?'grid':'none';
+  sv('tpd1',tp1||'—');sv('tpd2',tp2||'—');sv('tpd3',tp3||'—');
+}
+function updateSLDisplay(){
+  const sl=gv('p1-sl');
+  const box=document.getElementById('sl-display');
+  box.style.display=sl?'block':'none';
+  sv('sld',sl||'—');
+}
+function updateRR(){
+  const loss=Math.abs(gf('p1-maxloss'));
+  const gain=gf('p1-target');
+  const box=document.getElementById('rr-display');
+  if(!loss&&!gain){box.style.display='none';return;}
+  box.style.display='flex';
+  document.getElementById('rr-loss').textContent=loss?'-$'+loss.toFixed(2)+' USD':'—';
+  document.getElementById('rr-gain').textContent=gain?'+$'+gain.toFixed(2)+' USD':'—';
+  if(loss&&gain){
+    const ratio=(gain/loss).toFixed(2);
+    document.getElementById('rr-ratio').textContent='1 : '+ratio;
+  } else {
+    document.getElementById('rr-ratio').textContent='—';
+  }
+}
+
+function toggleStrat(btn,val){
+  btn.classList.toggle('on');
+  if(btn.classList.contains('on')){if(!S.strats.includes(val))S.strats.push(val);}
+  else S.strats=S.strats.filter(s=>s!==val);
+  document.getElementById('strat-selected').textContent=S.strats.length?'已選：'+S.strats.join('、'):'尚未選擇策略';
+}
+function selEm(idx,val){document.querySelectorAll('.em-btn').forEach(b=>b.classList.remove('on'));document.getElementById('em'+idx).classList.add('on');S.emotion=val;}
+function qa(qid,val,btn,key){
+  const item=document.getElementById(qid);
+  item.querySelectorAll('.yn').forEach(b=>b.classList.remove('y-on','n-on'));
+  btn.classList.add(val==='y'?'y-on':'n-on');
+  item.classList.toggle('yes',val==='y');item.classList.toggle('no',val==='n');
+  S[key]=val==='y';
+}
+
+function showPage(p){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
+  document.getElementById('page-'+p).classList.add('on');
+  document.querySelectorAll('.nav-tab').forEach((t,i)=>t.classList.toggle('on',['entry','records','report'][i]===p));
+  if(p==='records')renderRec();
+  if(p==='report')renderRep();
+}
+function goPhase(n){[1,2,3].forEach(i=>{document.getElementById('ph'+i).style.display=i===n?'block':'none';document.getElementById('pb'+i).classList.toggle('on',i===n);});}
+
+function saveP1(){saveEntryNow();}
+
+function saveEntryNow(){
+  if(!gv('p1-sym')){alert('請填入交易品種');return;}
+  if(!S.strats.length){alert('請至少選一個策略');return;}
+  const t={
+    id:Date.now(),
+    date:gv('p1-date')||new Date().toISOString().slice(0,10),
+    etime:gv('p1-etime'),
+    symbol:gv('p1-sym').toUpperCase(),dir:gv('p1-dir'),
+    lots:gf('p1-lots'),entry:gf('p1-entry'),sl:gf('p1-sl'),
+    maxloss:gf('p1-maxloss'),target:gf('p1-target'),
+    tp1:gf('p1-tp1'),tp2:gf('p1-tp2'),tp3:gf('p1-tp3'),
+    strats:S.strats.slice(),tf:gv('p1-tf'),emotion:S.emotion,
+    reason:gv('p1-reason'),
+    images:imgEntry.slice(),
+    status:'open',
+    xtime:'',exit:0,exitReason:'',exitReasonLabel:'',
+    netPnl:0,fee:0,notes:'',exitImages:[],
+    score:null,grade:'—',
+    p1HasPlan:S.p1HasPlan,p1HasSL:S.p1HasSL,p1BigTF:S.p1BigTF,p1Chase:S.p1Chase,
+    p2Hold:null,p2Avg:null,p2TpM:null,p2Follow:null
+  };
+  trades.unshift(t);saveLS();fbSave(t);
+  resetForm();
+  setSyncStatus('synced','進場已儲存 ✓ 持倉中');
+  showPage('records');
+}
+
+// Exit modal
+let exitingId=null, exImgs=[], exS={ex_p2Hold:null,ex_p2Avg:null,ex_p2TpM:null,ex_p2Follow:null};
+
+function openExitModal(id){
+  const t=trades.find(x=>x.id===id);if(!t)return;
+  exitingId=id;exImgs=[];exS={ex_p2Hold:null,ex_p2Avg:null,ex_p2TpM:null,ex_p2Follow:null};
+  ['ex-exit','ex-xtime','ex-pnl','ex-fee','ex-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('ex-xr').selectedIndex=0;
+  document.getElementById('ex-img-preview').innerHTML='';
+  const hint=document.getElementById('ex-upload-hint');if(hint)hint.style.display='block';
+  document.querySelectorAll('#exit-modal .q-item').forEach(el=>el.classList.remove('yes','no'));
+  document.querySelectorAll('#exit-modal .yn').forEach(b=>b.classList.remove('y-on','n-on'));
+  closeModal();
+  document.getElementById('exit-modal').classList.add('show');
+}
+function closeExitModal(){document.getElementById('exit-modal').classList.remove('show');exitingId=null;}
+
+function exqa(qid,val,btn,key){
+  const item=document.getElementById(qid);
+  item.querySelectorAll('.yn').forEach(b=>b.classList.remove('y-on','n-on'));
+  btn.classList.add(val==='y'?'y-on':'n-on');
+  item.classList.toggle('yes',val==='y');item.classList.toggle('no',val==='n');
+  exS[key]=val==='y';
+}
+
+function handleExitModalFiles(files){
+  Array.from(files).forEach(f=>{
+    if(!f.type.startsWith('image/'))return;
+    uploadImg(f).then(url=>{exImgs.push(url);renderExModalPreviews();}).catch(()=>{
+      const r=new FileReader();r.onload=e=>{exImgs.push(e.target.result);renderExModalPreviews();};r.readAsDataURL(f);
+    });
+  });
+}
+function handleExitModalDrop(e){e.preventDefault();e.currentTarget.classList.remove('drag');handleExitModalFiles(e.dataTransfer.files);}
+function renderExModalPreviews(){
+  const grid=document.getElementById('ex-img-preview');if(!grid)return;
+  grid.innerHTML=exImgs.map((src,i)=>`<div class="img-thumb-wrap"><img src="${src}" onclick="openLb('${src.replace(/'/g,"\\'")}')"><button class="img-del" onclick="exImgs.splice(${i},1);renderExModalPreviews()">×</button></div>`).join('');
+  const hint=document.getElementById('ex-upload-hint');
+  if(hint)hint.style.display=exImgs.length?'none':'block';
+}
+
+function saveExitData(){
+  if(!exitingId)return;
+  const idx=trades.findIndex(x=>x.id===exitingId);if(idx<0)return;
+  const t=trades[idx];
+  const xr=document.getElementById('ex-xr').value;
+  const xrMap={tp1:'止盈 TP1',tp2:'止盈 TP2',tp3:'止盈 TP3',be:'平保',sl:'止損 SL',manual:'手動出場'};
+  const p2Hold=exS.ex_p2Hold,p2Avg=exS.ex_p2Avg,p2TpM=exS.ex_p2TpM,p2Follow=exS.ex_p2Follow;
+  let plan=0,risk=0,exec=0;
+  if(t.p1HasPlan===true)plan+=40;if(t.p1BigTF===true)plan+=30;if(t.p1Chase===false)plan+=30;
+  if(t.p1HasSL===true)risk+=40;if(p2Avg===false)risk+=30;
+  if(p2Follow===true)exec+=40;if(p2TpM===true)exec+=35;if(p2Hold===false)exec+=25;
+  const emoAdj={'冷靜自信':15,'略為興奮':8,'FOMO 衝動':-5,'焦慮不安':-5,'報復交易':-10,'疲憊':-5};
+  const adj=emoAdj[t.emotion]||0;
+  const pN=Math.round(plan/100*35),rN=Math.round(risk/100*35),eN=Math.round(exec/100*30);
+  const score=Math.max(0,Math.min(100,pN+rN+eN+adj));
+  const gradeMap=['D','D','D','D','C','C','B','A','A','S','S'];
+  Object.assign(trades[idx],{
+    status:'closed',
+    xtime:document.getElementById('ex-xtime').value||'',
+    exit:parseFloat(document.getElementById('ex-exit').value)||0,
+    exitReason:xr,exitReasonLabel:xrMap[xr]||xr,
+    netPnl:parseFloat(document.getElementById('ex-pnl').value)||0,
+    fee:parseFloat(document.getElementById('ex-fee').value)||0,
+    notes:document.getElementById('ex-notes').value||'',
+    exitImages:exImgs.slice(),
+    p2Hold,p2Avg,p2TpM,p2Follow,
+    score,grade:gradeMap[Math.floor(score/10)]||'D'
+  });
+  saveLS();fbSave(trades[idx]);closeExitModal();renderRec();
+  setSyncStatus('synced','出場記錄已儲存 ✓');
+}
+
+// ===== SCORE =====
+function genReport(){
+  let plan=0,risk=0,exec=0;
+  const tags=[],issues=[];
+  if(S.p1HasPlan===true)plan+=40;else{tags.push('沒有計畫');issues.push({t:'d',m:'沒有計畫就進場：每筆交易前必須先定好 SL 和 TP。'});}
+  if(S.p1BigTF===true)plan+=30;else{tags.push('沒看大週期');issues.push({t:'w',m:'沒看大週期確認方向，容易被小週期雜訊誤導。'});}
+  if(S.p1Chase===false)plan+=30;else{tags.push('追漲殺跌');issues.push({t:'w',m:'追漲殺跌：進場時已漲/跌一大段，風報比變差。'});}
+  if(S.p1HasSL===true)risk+=40;else{tags.push('沒設停損');issues.push({t:'d',m:'一定要在平台上掛停損單，只在心裡想好不算。'});}
+  if(S.p2Avg===false)risk+=30;else{tags.push('攤平');issues.push({t:'d',m:'外匯合約中攤平非常危險，只會讓損失更大。'});}
+  if(S.p2Follow===true)exec+=40;else{tags.push('沒按計畫');issues.push({t:'d',m:'沒有按照計畫執行，下次要嚴格遵守進出場規則。'});}
+  if(S.p2TpM===true)exec+=35;else if(S.p2TpM===false){tags.push('沒移停損');issues.push({t:'d',m:'達到 TP1 後沒把停損移到進場價，會讓獲利吐回去。'});}
+  if(S.p2Hold===false)exec+=25;else{tags.push('扛單不出');issues.push({t:'d',m:'停損破了還不出場，停損位是判斷「這筆想法錯了」的位置。'});}
+  const emoAdj={'冷靜自信':15,'略為興奮':8,'FOMO 衝動':-5,'焦慮不安':-5,'報復交易':-10,'疲憊':-5};
+  let adj=emoAdj[S.emotion]||0;
+  if(S.emotion==='FOMO 衝動'){tags.push('FOMO');issues.push({t:'w',m:'FOMO 情緒進場通常在最貴的地方買、最便宜的地方賣。'});}
+  if(S.emotion==='報復交易'){tags.push('報復交易');issues.push({t:'d',m:'虧損後急著賺回來，這時判斷力最差，建議先休息。'});}
+  const pN=Math.round(plan/100*35),rN=Math.round(risk/100*35),eN=Math.round(exec/100*30);
+  const total=Math.max(0,Math.min(100,pN+rN+eN+adj));
+  const grades=[
+    {min:90,g:'S 級',c:'#059669',bg:'#ecfdf5',bc:'#059669',msg:'執行非常扎實，長期一定有回報。'},
+    {min:75,g:'A 級',c:'#2563eb',bg:'#eff6ff',bc:'#2563eb',msg:'執行品質很好，只有小地方需要調整。'},
+    {min:60,g:'B 級',c:'#d97706',bg:'#fffbeb',bc:'#d97706',msg:'大方向對了，但有幾個執行問題需要改善。'},
+    {min:40,g:'C 級',c:'#dc2626',bg:'#fef2f2',bc:'#dc2626',msg:'有幾個比較嚴重的執行問題，需要認真改善。'},
+    {min:0, g:'D 級',c:'#dc2626',bg:'#fef2f2',bc:'#dc2626',msg:'有多個高風險問題，請優先處理紅色警示。'}
+  ];
+  const gr=grades.find(g=>total>=g.min)||grades[grades.length-1];
+  const circ=document.getElementById('sc-circle');circ.style.borderColor=gr.bc;circ.style.background=gr.bg;
+  document.getElementById('sc-num').style.color=gr.c;sv('sc-num',total);
+  document.getElementById('sc-grade').style.color=gr.c;sv('sc-grade',gr.g+' 執行');
+  sv('sc-summary','計畫 '+pN+' / 風控 '+rN+' / 紀律 '+eN+(adj?(' / 情緒 '+(adj>0?'+':'')+adj):''));
+  sv('sb-plan',pN);document.getElementById('bar-plan').style.width=plan+'%';
+  sv('sb-risk',rN);document.getElementById('bar-risk').style.width=risk+'%';
+  sv('sb-exec',eN);document.getElementById('bar-exec').style.width=exec+'%';
+  document.getElementById('sc-tags').innerHTML=tags.length?tags.map(t=>`<span class="tag-f">${t}</span>`).join(''):'<span class="tag-ok">沒有發現明顯問題</span>';
+  document.getElementById('sc-issues').innerHTML=issues.map(i=>`<div class="iss iss-${i.t}">${i.m}</div>`).join('');
+  sv('sc-msg',gr.msg);
+  sv('pd2','✓');document.getElementById('pd2').className='ph-dot dot-done';
+  document.getElementById('pd3').className='ph-dot dot-active';goPhase(3);
+}
+
+// ===== SAVE TRADE =====
+function saveTrade(){
+  const gradeMap=['D','D','D','D','C','C','B','A','A','S','S'];
+  const xrMap={tp1:'止盈 TP1',tp2:'止盈 TP2',tp3:'止盈 TP3',be:'平保',sl:'止損 SL',manual:'手動出場'};
+  const xr=gv('p2-xr');
+  const t={
+    id:Date.now(),
+    date:gv('p1-date')||new Date().toISOString().slice(0,10),
+    etime:gv('p1-etime'),xtime:gv('p2-xtime'),
+    symbol:gv('p1-sym').toUpperCase(),
+    dir:gv('p1-dir'),
+    lots:gf('p1-lots'),
+    entry:gf('p1-entry'),sl:gf('p1-sl'),
+    maxloss:gf('p1-maxloss'),target:gf('p1-target'),
+    tp1:gf('p1-tp1'),tp2:gf('p1-tp2'),tp3:gf('p1-tp3'),
+    exit:gf('p2-exit'),
+    exitReason:xr,exitReasonLabel:xrMap[xr]||xr,
+    netPnl:gf('p2-pnl'),fee:gf('p2-fee'),
+    strats:S.strats.slice(),tf:gv('p1-tf'),emotion:S.emotion,
+    reason:gv('p1-reason'),notes:gv('p2-notes'),
+    images:imgEntry.slice(),exitImages:imgExit.slice(),
+    score:parseInt(document.getElementById('sc-num')?.textContent)||0,
+    grade:gradeMap[Math.floor(parseInt(document.getElementById('sc-num')?.textContent||'0')/10)]||'D',
+    p1HasPlan:S.p1HasPlan,p1HasSL:S.p1HasSL,p1BigTF:S.p1BigTF,p1Chase:S.p1Chase,
+    p2Hold:S.p2Hold,p2Avg:S.p2Avg,p2TpM:S.p2TpM,p2Follow:S.p2Follow
+  };
+  trades.unshift(t);saveLS();fbSave(t);resetForm();
+}
+
+// ===== RESET =====
+function resetForm(){
+  ['p1-sym','p1-date','p1-etime','p1-lots','p1-entry','p1-sl','p1-maxloss','p1-target','p1-tp1','p1-tp2','p1-tp3','p1-tf','p1-reason','p2-exit','p2-xtime','p2-pnl','p2-fee','p2-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('p1-dir').selectedIndex=0;
+  document.getElementById('p2-xr').selectedIndex=0;
+  document.querySelectorAll('.q-item').forEach(el=>el.classList.remove('yes','no'));
+  document.querySelectorAll('.yn').forEach(b=>b.classList.remove('y-on','n-on'));
+  document.querySelectorAll('.strat-btn,.em-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('strat-selected').textContent='尚未選擇策略';
+  document.getElementById('tp-display').style.display='none';
+  document.getElementById('sl-display').style.display='none';
+  document.getElementById('rr-display').style.display='none';
+  imgEntry=[];imgExit=[];renderPreviews();
+  Object.assign(S,{strats:[],emotion:'',p1HasPlan:null,p1HasSL:null,p1BigTF:null,p1Chase:null,p2Hold:null,p2Avg:null,p2TpM:null,p2Follow:null});
+  [1,2,3].forEach(i=>{sv('pd'+i,i);document.getElementById('pd'+i).className='ph-dot '+(i===1?'dot-active':'dot-idle');});
+  goPhase(1);
+}
+
+// ===== RECORDS =====
+let recF='all',repF='all',sfSel='all';
+let pnlChart=null,sfChart=null,stratChart=null;
+
+function filterT(list,f){
+  const now=Date.now();
+  if(f==='7d')return list.filter(t=>now-new Date(t.date).getTime()<7*864e5);
+  if(f==='30d')return list.filter(t=>now-new Date(t.date).getTime()<30*864e5);
+  if(f==='win')return list.filter(t=>(t.netPnl||0)>0);
+  if(f==='loss')return list.filter(t=>(t.netPnl||0)<=0);
+  return list;
+}
+function setF(btn,val){document.querySelectorAll('#page-records .fc').forEach(b=>b.classList.remove('on'));btn.classList.add('on');recF=val;renderRec();}
+function setRF(btn,val){document.querySelectorAll('#rep-time-filters .fc').forEach(b=>b.classList.remove('on'));btn.classList.add('on');repF=val;renderRep();}
+function setSF(btn,val){document.querySelectorAll('.sf-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');sfSel=val;renderRep();}
+
+function renderRec(){
+  const list=filterT(trades,recF),el=document.getElementById('rec-list');
+  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><div>尚無紀錄</div></div>';return;}
+  el.innerHTML=list.map(t=>{
+    const pnl=t.netPnl||0;
+    const isOpen=t.status==='open';
+    const imgCount=(t.images||[]).length+(t.exitImages||[]).length;
+    return`<div class="rec-item${isOpen?' open-pos':''}" onclick="showDetail(${t.id})">
+      <div class="rec-top">
+        <span class="rec-sym">${t.symbol||'—'}</span>
+        <span class="rd ${t.dir==='做多'?'dl':'ds'}">${t.dir||'—'}</span>
+        ${isOpen?'<span class="badge-open">🟡 持倉中</span>':`<span class="gb g${t.grade||'D'}">${t.grade||'D'}</span>`}
+        ${imgCount?`<span style="font-size:10px;color:var(--text3)">📸 ${imgCount}</span>`:''}
+        <span class="rec-date">${t.date||'—'}</span>
+      </div>
+      <div class="rec-bottom">
+        <div class="rs"><span class="rl">損益</span><span class="rv ${!isOpen&&pnl>=0?'pos':!isOpen?'neg':''}">${isOpen?'持倉中':(pnl>=0?'+':'')+pnl.toFixed(2)+' USD'}</span></div>
+        <div class="rs"><span class="rl">出場原因</span><span class="rv">${isOpen?'—':t.exitReasonLabel||'—'}</span></div>
+        <div class="rs"><span class="rl">手數</span><span class="rv">${t.lots||'—'}</span></div>
+        <div class="rs"><span class="rl">進場價</span><span class="rv">${t.entry||'—'}</span></div>
+        <div class="rs"><span class="rl">出場價</span><span class="rv">${isOpen?'—':t.exit||'—'}</span></div>
+        <div class="rs"><span class="rl">策略</span><span class="rv">${Array.isArray(t.strats)&&t.strats.length?t.strats.join('、'):'—'}</span></div>
+        <div class="rs"><span class="rl">情緒</span><span class="rv">${t.emotion||'—'}</span></div>
+        <div class="rs"><span class="rl">評分</span><span class="rv">${isOpen?'出場後評分':t.score!=null?t.score+'/100':'—'}</span></div>
+      </div>
+      ${isOpen?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)"><button class="btn btn-p" style="width:100%;padding:8px;font-size:13px" onclick="event.stopPropagation();openExitModal(${t.id})">📤 填入出場資料</button></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function showDetail(id){
+  const t=trades.find(x=>x.id===id);if(!t)return;
+  const pnl=t.netPnl||0;
+  const imgs=t.images||[], exitImgs=t.exitImages||[];
+  document.getElementById('modal-ttl').textContent=t.symbol+' — '+t.date;
+  document.getElementById('modal-body').innerHTML=`
+    <div class="g2" style="gap:7px;margin-bottom:10px">
+      <div><div style="font-size:10px;color:var(--text3)">方向</div><div style="font-weight:600;color:${t.dir==='做多'?'var(--green)':'var(--red)'}">${t.dir}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">手數</div><div style="font-weight:600">${t.lots||'—'}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">進場價</div><div>${t.entry||'—'}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">出場價</div><div>${t.exit||'—'}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">SL</div><div>${t.sl||'—'}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">出場原因</div><div>${t.exitReasonLabel||'—'}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">TP1/2/3</div><div style="font-size:12px">${[t.tp1,t.tp2,t.tp3].filter(Boolean).join(' / ')||'—'}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">手續費</div><div>${t.fee?t.fee+' USD':'—'}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">最大可接受虧損</div><div style="color:var(--red);font-weight:600">${t.maxloss?'-$'+Math.abs(t.maxloss).toFixed(2)+' USD':'—'}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">預期報酬</div><div style="color:var(--green);font-weight:600">${t.target?'+$'+t.target.toFixed(2)+' USD':'—'}</div></div>
+    </div>
+    <div style="font-size:18px;font-weight:700;color:${pnl>=0?'var(--green)':'var(--red)'};margin-bottom:10px;padding:10px;background:var(--bg3);border-radius:var(--rs);text-align:center">
+      損益：${pnl>=0?'+':''}${pnl.toFixed(2)} USD
+    </div>
+    ${t.reason?`<div style="margin-bottom:8px"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">進場理由</div><div style="font-size:12px">${t.reason}</div></div>`:''}
+    ${t.notes?`<div style="margin-bottom:8px"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">複盤筆記</div><div style="font-size:12px">${t.notes}</div></div>`:''}
+    ${imgs.length?`<div style="margin-bottom:8px"><div style="font-size:10px;color:var(--text3);margin-bottom:6px">📸 進場截圖（${imgs.length}張）</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px">${imgs.map(src=>`<div style="aspect-ratio:16/10;border-radius:6px;overflow:hidden;border:1px solid var(--border);cursor:pointer" onclick="openLb('${src.replace(/'/g,"\\'")}')" ><img src="${src}" style="width:100%;height:100%;object-fit:cover"></div>`).join('')}</div></div>`:''}
+    ${exitImgs.length?`<div style="margin-bottom:8px"><div style="font-size:10px;color:var(--text3);margin-bottom:6px">📸 出場截圖（${exitImgs.length}張）</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px">${exitImgs.map(src=>`<div style="aspect-ratio:16/10;border-radius:6px;overflow:hidden;border:1px solid var(--border);cursor:pointer" onclick="openLb('${src.replace(/'/g,"\\'")}')" ><img src="${src}" style="width:100%;height:100%;object-fit:cover"></div>`).join('')}</div></div>`:''}
+    <div style="font-size:10px;color:var(--text3)">策略：${Array.isArray(t.strats)&&t.strats.length?t.strats.join('、'):'—'} ／ 情緒：${t.emotion||'—'} ／ 評分：${t.score!=null?t.score+'/100':'—'}</div>
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" style="padding:5px 12px;font-size:12px;border-color:var(--amber);color:var(--amber)" onclick="openEditModal(${t.id})">✏️ 編輯</button>
+      <button class="btn btn-r" style="padding:5px 12px;font-size:12px" onclick="delTrade(${t.id})">刪除此筆</button>
+    </div>`;
+  document.getElementById('detail-modal').classList.add('show');
+}
+
+function closeModal(){document.getElementById('detail-modal').classList.remove('show');}
+
+// ===== EDIT =====
+let editingId=null;
+let editImgEntry=[], editImgExit=[];
+
+function renderEditImgPreview(type){
+  const imgs=type==='entry'?editImgEntry:editImgExit;
+  const grid=document.getElementById(`e-img-${type}-preview`);
+  if(!grid)return;
+  grid.innerHTML=imgs.map((src,i)=>`
+    <div class="img-thumb-wrap">
+      <img src="${src}" onclick="openLb('${src.replace(/'/g,"\\'")}')">
+      <button class="img-del" onclick="editImgRemove('${type}',${i})">×</button>
+    </div>`).join('');
+}
+function editImgRemove(type,idx){
+  if(type==='entry')editImgEntry.splice(idx,1); else editImgExit.splice(idx,1);
+  renderEditImgPreview(type);
+}
+function handleEditImgFiles(files,type){
+  Array.from(files).forEach(f=>{
+    if(!f.type.startsWith('image/'))return;
+    uploadImg(f).then(url=>{
+      if(type==='entry')editImgEntry.push(url); else editImgExit.push(url);
+      renderEditImgPreview(type);
+      setSyncStatus('synced','截圖已上傳 ✓');
+    }).catch(()=>{
+      const r=new FileReader();
+      r.onload=e=>{if(type==='entry')editImgEntry.push(e.target.result); else editImgExit.push(e.target.result);renderEditImgPreview(type);};
+      r.readAsDataURL(f);
+    });
+  });
+}
+function handleEditImgDrop(e,type){
+  e.preventDefault();e.currentTarget.classList.remove('drag');
+  handleEditImgFiles(e.dataTransfer.files,type);
+}
+
+function openEditModal(id){
+  const t=trades.find(x=>x.id===id);if(!t)return;
+  editingId=id;
+  editImgEntry=(t.images||[]).slice();
+  editImgExit=(t.exitImages||[]).slice();
+  const set=(el,v)=>{const e=document.getElementById(el);if(e)e.value=v||'';};
+  set('e-date',t.date);set('e-sym',t.symbol);document.getElementById('e-dir').value=t.dir||'做多';
+  set('e-lots',t.lots);set('e-entry',t.entry);set('e-exit',t.exit);set('e-pnl',t.netPnl);
+  set('e-tp1',t.tp1);set('e-tp2',t.tp2);set('e-tp3',t.tp3);set('e-sl',t.sl);set('e-fee',t.fee);
+  set('e-reason',t.reason);set('e-notes',t.notes);
+  renderEditImgPreview('entry');
+  renderEditImgPreview('exit');
+  closeModal();document.getElementById('edit-modal').classList.add('show');
+}
+function closeEditModal(){
+  document.getElementById('edit-modal').classList.remove('show');
+  editingId=null;editImgEntry=[];editImgExit=[];
+}
+function saveEdit(){
+  if(!editingId)return;
+  const idx=trades.findIndex(x=>x.id===editingId);if(idx<0)return;
+  const get=id=>document.getElementById(id)?.value||'';
+  const getN=id=>parseFloat(document.getElementById(id)?.value)||0;
+  trades[idx]={...trades[idx],date:get('e-date'),symbol:get('e-sym').toUpperCase(),dir:get('e-dir'),
+    lots:getN('e-lots'),entry:getN('e-entry'),exit:getN('e-exit'),netPnl:getN('e-pnl'),
+    tp1:getN('e-tp1'),tp2:getN('e-tp2'),tp3:getN('e-tp3'),sl:getN('e-sl'),fee:getN('e-fee'),
+    reason:get('e-reason'),notes:get('e-notes'),
+    images:editImgEntry.slice(),exitImages:editImgExit.slice()};
+  saveLS();fbSave(trades[idx]);closeEditModal();renderRec();
+}
+
+function delTrade(id){
+  if(!confirm('確定刪除？'))return;
+  trades=trades.filter(t=>t.id!==id);saveLS();fbDelete(id);renderRec();closeModal();
+}
+
+// ===== REPORT =====
+function renderRep(){
+  const list=filterT(trades,repF),n=list.length;
+  if(!n){
+    document.getElementById('stat-grid').innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-icon">📊</div><div>尚無紀錄</div></div>';
+    [pnlChart,sfChart,stratChart].forEach(c=>{if(c)c.destroy();});pnlChart=sfChart=stratChart=null;return;
+  }
+  const wins=list.filter(t=>(t.netPnl||0)>0).length;
+  const total=list.reduce((s,t)=>s+(t.netPnl||0),0);
+  const avg=total/n,maxL=Math.min(...list.map(t=>t.netPnl||0));
+  const avgScore=list.reduce((s,t)=>s+(t.score||0),0)/n;
+  const wr=Math.round(wins/n*100);
+  document.getElementById('stat-grid').innerHTML=`
+    <div class="stat-card"><div class="stat-lbl">總筆數</div><div class="stat-val">${n}</div></div>
+    <div class="stat-card"><div class="stat-lbl">勝率</div><div class="stat-val ${wr>=50?'pos':'neg'}">${wr}%</div></div>
+    <div class="stat-card"><div class="stat-lbl">總損益</div><div class="stat-val ${total>=0?'pos':'neg'}">${total>=0?'+':''}${total.toFixed(2)}<span style="font-size:11px;font-weight:400"> USD</span></div></div>
+    <div class="stat-card"><div class="stat-lbl">平均損益</div><div class="stat-val ${avg>=0?'pos':'neg'}">${avg>=0?'+':''}${avg.toFixed(2)}<span style="font-size:11px;font-weight:400"> USD</span></div></div>
+    <div class="stat-card"><div class="stat-lbl">最大單筆虧損</div><div class="stat-val neg">${maxL.toFixed(2)}<span style="font-size:11px;font-weight:400"> USD</span></div></div>
+    <div class="stat-card"><div class="stat-lbl">平均評分</div><div class="stat-val pu">${avgScore.toFixed(1)}<span style="font-size:11px;font-weight:400"> /100</span></div></div>`;
+
+  const sorted=[...list].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  let cum=0;const labels=[],data=[];
+  sorted.forEach(t=>{cum+=t.netPnl||0;labels.push(t.date);data.push(parseFloat(cum.toFixed(2)));});
+  if(pnlChart)pnlChart.destroy();
+  pnlChart=new Chart(document.getElementById('chart-pnl'),{type:'line',data:{labels,datasets:[{label:'累積損益',data,borderColor:'#d97706',backgroundColor:'rgba(217,119,6,.08)',fill:true,tension:.35,pointRadius:3,pointBackgroundColor:'#d97706'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#96a0b5',font:{size:10},maxRotation:30},grid:{color:'#e2e6ed'}},y:{ticks:{color:'#96a0b5',font:{size:10}},grid:{color:'#e2e6ed'}}}}});
+
+  // Strategy filter
+  const sfList=sfSel==='all'?list:list.filter(t=>Array.isArray(t.strats)&&t.strats.includes(sfSel));
+  const sn=sfList.length,sw=sfList.filter(t=>(t.netPnl||0)>0).length;
+  const st=sfList.reduce((s,t)=>s+(t.netPnl||0),0);
+  const sa=sfList.reduce((s,t)=>s+(t.score||0),0)/(sn||1);
+  sv('sf-n',sn);sv('sf-wr',sn?Math.round(sw/sn*100)+'%':'—');
+  const sfPnlEl=document.getElementById('sf-pnl');sfPnlEl.textContent=(st>=0?'+':'')+st.toFixed(2)+' USD';sfPnlEl.className='ss-val '+(st>=0?'pos':'neg');
+  sv('sf-score',sa.toFixed(1)+'/100');
+  const sfSorted=[...sfList].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  let c2=0;const l2=[],d2=[];sfSorted.forEach(t=>{c2+=t.netPnl||0;l2.push(t.date);d2.push(parseFloat(c2.toFixed(2)));});
+  if(sfChart)sfChart.destroy();
+  sfChart=new Chart(document.getElementById('chart-sf'),{type:'line',data:{labels:l2,datasets:[{label:'損益',data:d2,borderColor:d2[d2.length-1]>=0?'#059669':'#dc2626',backgroundColor:d2[d2.length-1]>=0?'rgba(5,150,105,.08)':'rgba(220,38,38,.06)',fill:true,tension:.35,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#96a0b5',font:{size:10},maxRotation:30},grid:{color:'#e2e6ed'}},y:{ticks:{color:'#96a0b5',font:{size:10}},grid:{color:'#e2e6ed'}}}}});
+
+  // Strat bar
+  const sm={};
+  list.forEach(t=>{(t.strats||[]).forEach(s=>{if(!sm[s])sm[s]={pnl:0,n:0,wins:0};sm[s].pnl+=t.netPnl||0;sm[s].n++;if((t.netPnl||0)>0)sm[s].wins++;});});
+  const sl2=Object.keys(sm),sp=sl2.map(k=>parseFloat(sm[k].pnl.toFixed(2)));
+  if(stratChart)stratChart.destroy();
+  if(sl2.length)stratChart=new Chart(document.getElementById('chart-strat'),{type:'bar',data:{labels:sl2,datasets:[{data:sp,backgroundColor:sp.map(v=>v>=0?'rgba(217,119,6,.7)':'rgba(220,38,38,.7)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const k=sl2[ctx.dataIndex];const d=sm[k];return[`損益：${sp[ctx.dataIndex]>=0?'+':''}${sp[ctx.dataIndex].toFixed(2)} USD`,`筆數：${d.n}`,`勝率：${Math.round(d.wins/d.n*100)}%`];}}}},scales:{x:{ticks:{color:'#96a0b5'},grid:{color:'#e2e6ed'}},y:{ticks:{color:'#96a0b5'},grid:{color:'#e2e6ed'}}}}});
+
+  drawCalendar(list);
+}
+
+function exportCSV(){
+  if(!trades.length){alert('尚無資料');return;}
+  const h=['日期','品種','方向','手數','進場價','出場價','SL','TP1','TP2','TP3','損益USD','手續費','出場原因','策略','情緒','評分','進場理由','複盤筆記','截圖數'];
+  const rows=trades.map(t=>[t.date,t.symbol,t.dir,t.lots,t.entry,t.exit,t.sl,t.tp1,t.tp2,t.tp3,t.netPnl,t.fee||0,t.exitReasonLabel,
+    `"${(Array.isArray(t.strats)?t.strats.join('、'):'').replace(/"/g,'""')}"`,t.emotion,t.score,
+    `"${(t.reason||'').replace(/"/g,'""')}"`,`"${(t.notes||'').replace(/"/g,'""')}"`,
+    (t.images||[]).length+(t.exitImages||[]).length].join(','));
+  const csv='\uFEFF'+[h.join(','),...rows].join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`FTMO日誌_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+}
+function clearAll(){if(!confirm('確定清除所有紀錄？'))return;trades=[];saveLS();renderRec();}
+
+// ===== PNL CALENDAR =====
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
+const MONTH_NAMES=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+function calPrev(){ calMonth--; if(calMonth<0){calMonth=11;calYear--;} drawCalendar(filterT(trades,repF)); }
+function calNext(){ calMonth++; if(calMonth>11){calMonth=0;calYear++;} drawCalendar(filterT(trades,repF)); }
+function calToday(){ calYear=new Date().getFullYear(); calMonth=new Date().getMonth(); drawCalendar(filterT(trades,repF)); }
+
+function drawCalendar(list){
+  const labelEl=document.getElementById('cal-label');
+  const gridEl=document.getElementById('cal-grid');
+  const sumEl=document.getElementById('cal-summary');
+  if(!labelEl||!gridEl)return;
+
+  labelEl.textContent=`${calYear}年 ${MONTH_NAMES[calMonth]}`;
+
+  // Build day map: date → { pnl, trades }
+  const dayMap={};
+  list.forEach(t=>{
+    if(!t.date)return;
+    const pnl=parseFloat(t.netPnl)||0;
+    if(!dayMap[t.date])dayMap[t.date]={pnl:0,trades:[]};
+    dayMap[t.date].pnl=parseFloat((dayMap[t.date].pnl+pnl).toFixed(4));
+    dayMap[t.date].trades.push({pnl,symbol:t.symbol||'',xr:t.exitReasonLabel||''});
+  });
+
+  const todayStr=new Date().toISOString().slice(0,10);
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const daysInPrev=new Date(calYear,calMonth,0).getDate();
+
+  const DOW=['日','一','二','三','四','五','六'];
+  let html=DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+
+  const totalCells=Math.ceil((firstDay+daysInMonth)/7)*7;
+  for(let i=0;i<totalCells;i++){
+    let day, month=calMonth, year=calYear, isOther=false;
+    if(i<firstDay){
+      day=daysInPrev-firstDay+i+1; month=calMonth-1; isOther=true;
+      if(month<0){month=11;year=calYear-1;}
+    } else if(i>=firstDay+daysInMonth){
+      day=i-firstDay-daysInMonth+1; month=calMonth+1; isOther=true;
+      if(month>11){month=0;year=calYear+1;}
+    } else {
+      day=i-firstDay+1;
+    }
+
+    const dateStr=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const d=!isOther?dayMap[dateStr]:null;
+    const isToday=dateStr===todayStr;
+
+    let cls='cal-cell';
+    if(isOther){ cls+=' other-month'; }
+    else if(d){
+      cls+=' has-trade';
+      cls+=d.pnl>0.005?' profit-cell':d.pnl<-0.005?' loss-cell':' zero-cell';
+    }
+    if(isToday)cls+=' today-cell';
+
+    const pnlTxt=d?(d.pnl>=0?'+':'')+d.pnl.toFixed(2)+' USD':'';
+    const countTxt=d&&d.trades.length?d.trades.length+'筆':'';
+
+    // Tooltip
+    let tip='';
+    if(d&&!isOther){
+      const lines=d.trades.map(t=>`${t.symbol} ${t.pnl>=0?'+':''}${t.pnl.toFixed(2)} USD${t.xr?' ('+t.xr+')':''}`);
+      tip=`<div class="cal-tooltip">${lines.join('<br>')}</div>`;
+    }
+
+    html+=`<div class="${cls}">
+      <span class="cal-day-num">${day}</span>
+      ${d?`<div class="cal-day-pnl">${pnlTxt}</div>`:''}
+      ${d?`<div class="cal-day-count">${countTxt}</div>`:''}
+      ${tip}
+    </div>`;
+  }
+  gridEl.innerHTML=html;
+
+  // Monthly summary
+  const prefix=`${calYear}-${String(calMonth+1).padStart(2,'0')}`;
+  const monthTrades=list.filter(t=>t.date&&t.date.startsWith(prefix));
+  const monthPnl=monthTrades.reduce((s,t)=>s+(parseFloat(t.netPnl)||0),0);
+  const monthWins=monthTrades.filter(t=>(parseFloat(t.netPnl)||0)>0).length;
+  const monthWR=monthTrades.length?Math.round(monthWins/monthTrades.length*100):null;
+  const tradeDays=new Set(monthTrades.map(t=>t.date)).size;
+
+  sumEl.innerHTML=`
+    <div class="cal-sum-item">
+      <div class="cal-sum-lbl">月損益</div>
+      <div class="cal-sum-val ${monthPnl>=0?'pos':'neg'}">${monthPnl>=0?'+':''}${monthPnl.toFixed(2)} USD</div>
+    </div>
+    <div class="cal-sum-item">
+      <div class="cal-sum-lbl">月勝率</div>
+      <div class="cal-sum-val ${monthWR!=null&&monthWR>=50?'pos':monthWR!=null?'neg':''}">${monthWR!=null?monthWR+'%':'—'}</div>
+    </div>
+    <div class="cal-sum-item">
+      <div class="cal-sum-lbl">交易天數</div>
+      <div class="cal-sum-val">${tradeDays}</div>
+    </div>`;
+}
+
+// ===== INIT =====
+document.getElementById('detail-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeEditModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeEditModal();closeLb();}});
+
+// ===== INIT =====
+// Edit modal paste listener
+document.getElementById('edit-modal').addEventListener('paste',function(e){
+  const items=Array.from(e.clipboardData?.items||[]).filter(i=>i.type.startsWith('image/'));
+  if(!items.length)return;
+  e.stopPropagation();
+  handleEditImgFiles(items.map(i=>i.getAsFile()).filter(Boolean),'entry');
+});
+
+if(window._fbReady){initFirebase();}
+else{window.addEventListener('fb-ready',initFirebase,{once:true});setTimeout(()=>{if(!window._fbReady)setSyncStatus('offline','離線模式');},5000);}
+saveLS();
+
+// Exit modal paste listener — catches Ctrl+V regardless of focus
+document.getElementById('exit-modal').addEventListener('paste',function(e){
+  const items=Array.from(e.clipboardData?.items||[]).filter(i=>i.type.startsWith('image/'));
+  if(!items.length)return;
+  e.stopPropagation();
+  handleExitModalFiles(items.map(i=>i.getAsFile()).filter(Boolean));
+});
+</script>
+
+<!-- EXIT MODAL -->
+<div class="modal-overlay" id="exit-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">
+      <span>📤 填入出場資料</span>
+      <button class="modal-close" onclick="closeExitModal()">×</button>
+    </div>
+    <div style="background:var(--accent-bg);border:1px solid #fcd34d;border-radius:var(--rs);padding:9px 12px;margin-bottom:12px;font-size:12px;color:var(--amber)">
+      出場後填寫，填完後系統會自動產生評分並更新紀錄。
+    </div>
+    <div class="g3" style="margin-bottom:9px">
+      <div class="f"><label>出場價格</label><input type="number" id="ex-exit" placeholder="0.00000" step="any"></div>
+      <div class="f"><label>出場時間</label><input type="time" id="ex-xtime"></div>
+      <div class="f"><label>出場原因</label>
+        <select id="ex-xr">
+          <option value="">選擇</option>
+          <option value="tp1">止盈 TP1</option>
+          <option value="tp2">止盈 TP2</option>
+          <option value="tp3">止盈 TP3</option>
+          <option value="be">平保</option>
+          <option value="sl">止損 SL</option>
+          <option value="manual">手動出場</option>
+        </select>
+      </div>
+    </div>
+    <div class="g2" style="margin-bottom:9px">
+      <div class="f"><label>損益（手動填寫，USD）</label><input type="number" id="ex-pnl" placeholder="正獲利，負虧損" step="any"><span class="hint">直接填平台上的損益金額</span></div>
+      <div class="f"><label>手續費（選填，USD）</label><input type="number" id="ex-fee" placeholder="0.00" step="any"></div>
+    </div>
+    <div style="margin-bottom:9px">
+      <div style="font-size:11px;color:var(--text2);font-weight:500;margin-bottom:5px">📸 出場截圖</div>
+      <div class="img-upload-area" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleExitModalDrop(event)" style="min-height:80px">
+        <input type="file" id="ex-img-input" accept="image/*" multiple onchange="handleExitModalFiles(this.files)">
+        <div class="img-upload-hint" id="ex-upload-hint"><span>🖼</span>點擊或拖曳上傳，或按 <strong>Ctrl+V</strong> 貼上截圖</div>
+      </div>
+      <div class="img-grid-preview" id="ex-img-preview"></div>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">出場後回顧</div>
+    <div class="q-item" id="exq-hold"><div class="q-text">停損位破了有沒有繼續扛著？</div><div class="yn-row"><button class="yn" onclick="exqa('exq-hold','y',this,'ex_p2Hold')">有扛</button><button class="yn" onclick="exqa('exq-hold','n',this,'ex_p2Hold')">沒有</button></div></div>
+    <div class="q-item" id="exq-avg"><div class="q-text">有沒有加倉攤平？</div><div class="yn-row"><button class="yn" onclick="exqa('exq-avg','y',this,'ex_p2Avg')">有</button><button class="yn" onclick="exqa('exq-avg','n',this,'ex_p2Avg')">沒有</button></div></div>
+    <div class="q-item" id="exq-tpm"><div class="q-text">達到 TP1 後有沒有把停損移到進場價？</div><div class="yn-row"><button class="yn" onclick="exqa('exq-tpm','y',this,'ex_p2TpM')">有移</button><button class="yn" onclick="exqa('exq-tpm','n',this,'ex_p2TpM')">沒有</button></div></div>
+    <div class="q-item" id="exq-follow"><div class="q-text">整體有沒有按照計畫執行？</div><div class="yn-row"><button class="yn" onclick="exqa('exq-follow','y',this,'ex_p2Follow')">有</button><button class="yn" onclick="exqa('exq-follow','n',this,'ex_p2Follow')">沒有</button></div></div>
+    <div class="f" style="margin-top:9px"><label>複盤筆記</label><textarea id="ex-notes" placeholder="這筆讓你學到什麼？下次怎麼做？" style="min-height:52px"></textarea></div>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn" onclick="closeExitModal()">取消</button>
+      <button class="btn btn-p" onclick="saveExitData()">完成出場，產生評分 →</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
