@@ -388,9 +388,12 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
     <div class="info-bar">這一頁在<strong>出場之後</strong>填寫。</div>
     <div class="card">
       <div class="card-title">出場結果</div>
-      <div class="g3">
-        <div class="f"><label>出場價格</label><input type="number" id="p2-exit" placeholder="0.00000" step="any" inputmode="decimal"></div>
+      <div class="g2" style="margin-bottom:9px">
+        <div class="f"><label>出場日期</label><input type="date" id="p2-xdate"></div>
         <div class="f"><label>出場時間</label><input type="time" id="p2-xtime"></div>
+      </div>
+      <div class="g2" style="margin-bottom:9px">
+        <div class="f"><label>出場價格</label><input type="number" id="p2-exit" placeholder="0.00000" step="any" inputmode="decimal"></div>
         <div class="f"><label>出場原因</label>
           <select id="p2-xr">
             <option value="">選擇</option>
@@ -844,7 +847,7 @@ let exitingId=null, exImgs=[], exS={ex_p2Hold:null,ex_p2Avg:null,ex_p2TpM:null,e
 function openExitModal(id){
   const t=trades.find(x=>x.id===id);if(!t)return;
   exitingId=id;exImgs=[];exS={ex_p2Hold:null,ex_p2Avg:null,ex_p2TpM:null,ex_p2Follow:null};
-  ['ex-exit','ex-xtime','ex-pnl','ex-fee','ex-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['ex-exit','ex-xtime','ex-xdate','ex-pnl','ex-fee','ex-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('ex-xr').selectedIndex=0;
   document.getElementById('ex-img-preview').innerHTML='';
   const hint=document.getElementById('ex-upload-hint');if(hint)hint.style.display='block';
@@ -898,6 +901,7 @@ function saveExitData(){
   Object.assign(trades[idx],{
     status:'closed',
     xtime:document.getElementById('ex-xtime').value||'',
+    xdate:document.getElementById('ex-xdate').value||'',
     exit:parseFloat(document.getElementById('ex-exit').value)||0,
     exitReason:xr,exitReasonLabel:xrMap[xr]||xr,
     netPnl:parseFloat(document.getElementById('ex-pnl').value)||0,
@@ -959,7 +963,7 @@ function saveTrade(){
   const t={
     id:Date.now(),
     date:gv('p1-date')||new Date().toISOString().slice(0,10),
-    etime:gv('p1-etime'),xtime:gv('p2-xtime'),
+    etime:gv('p1-etime'),xtime:gv('p2-xtime'),xdate:gv('p2-xdate'),
     symbol:gv('p1-sym').toUpperCase(),
     dir:gv('p1-dir'),
     lots:gf('p1-lots'),
@@ -982,7 +986,7 @@ function saveTrade(){
 
 // ===== RESET =====
 function resetForm(){
-  ['p1-sym','p1-date','p1-etime','p1-lots','p1-entry','p1-sl','p1-maxloss','p1-target','p1-tp1','p1-tp2','p1-tp3','p1-tf','p1-reason','p2-exit','p2-xtime','p2-pnl','p2-fee','p2-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['p1-sym','p1-date','p1-etime','p1-lots','p1-entry','p1-sl','p1-maxloss','p1-target','p1-tp1','p1-tp2','p1-tp3','p1-tf','p1-reason','p2-exit','p2-xtime','p2-xdate','p2-pnl','p2-fee','p2-notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('p1-dir').selectedIndex=0;
   document.getElementById('p2-xr').selectedIndex=0;
   document.querySelectorAll('.q-item').forEach(el=>el.classList.remove('yes','no'));
@@ -1056,6 +1060,8 @@ function showDetail(id){
       <div><div style="font-size:10px;color:var(--text3)">進場價</div><div>${t.entry||'—'}</div></div>
       <div><div style="font-size:10px;color:var(--text3)">出場價</div><div>${t.exit||'—'}</div></div>
       <div><div style="font-size:10px;color:var(--text3)">SL</div><div>${t.sl||'—'}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">出場日期</div><div>${t.xdate||t.date||'—'}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">出場日期</div><div>${t.xdate||t.date||'—'}</div></div>
       <div><div style="font-size:10px;color:var(--text3)">出場原因</div><div>${t.exitReasonLabel||'—'}</div></div>
       <div><div style="font-size:10px;color:var(--text3)">TP1/2/3</div><div style="font-size:12px">${[t.tp1,t.tp2,t.tp3].filter(Boolean).join(' / ')||'—'}</div></div>
       <div><div style="font-size:10px;color:var(--text3)">手續費</div><div>${t.fee?t.fee+' USD':'—'}</div></div>
@@ -1350,9 +1356,12 @@ document.getElementById('exit-modal').addEventListener('paste',function(e){
       出場後填寫，填完後系統會自動產生評分並更新紀錄。
     </div>
     <div class="g3" style="margin-bottom:9px">
-      <div class="f"><label>出場價格</label><input type="number" id="ex-exit" placeholder="0.00000" step="any"></div>
+      <div class="f"><label>出場日期</label><input type="date" id="ex-xdate"></div>
       <div class="f"><label>出場時間</label><input type="time" id="ex-xtime"></div>
-      <div class="f"><label>出場原因</label>
+      <div class="f"><label>出場價格</label><input type="number" id="ex-exit" placeholder="0.00000" step="any"></div>
+    </div>
+    <div class="g3" style="margin-bottom:9px">
+      <div class="f" style="grid-column:1/3"><label>出場原因</label>
         <select id="ex-xr">
           <option value="">選擇</option>
           <option value="tp1">止盈 TP1</option>
