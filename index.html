@@ -213,6 +213,14 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
   .cal-day-pnl,.cal-day-count{display:none}
 }
 
+/* Cal modal compact */
+#cal-modal .cal-grid{gap:2px}
+#cal-modal .cal-cell{min-height:46px;padding:4px 3px 3px}
+@media(max-width:420px){
+  #cal-modal .cal-cell{min-height:36px;padding:3px 2px 2px}
+  #cal-modal .cal-day-pnl,#cal-modal .cal-day-count{display:none}
+}
+
 /* Images */
 .img-upload-area{border:2px dashed var(--border2);border-radius:var(--rs);padding:16px;text-align:center;cursor:pointer;transition:all .15s;position:relative}
 .img-upload-area:hover,.img-upload-area.drag{border-color:var(--amber);background:var(--accent-bg)}
@@ -259,6 +267,7 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
   <button class="nav-tab on" onclick="showPage('entry')">記錄交易</button>
   <button class="nav-tab" onclick="showPage('records')">紀錄 <span class="nav-count" id="nav-count">0</span></button>
   <button class="nav-tab" onclick="showPage('report')">報表</button>
+  <button class="nav-tab" onclick="openCalModal()" title="盈虧日曆">📅</button>
   <div class="sync-bar offline" id="sync-bar">
     <span class="sync-dot" id="sync-dot"></span>
     <span id="sync-txt">連線中…</span>
@@ -339,6 +348,7 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
       <div class="strat-grid">
         <button class="strat-btn" onclick="toggleStrat(this,'MLST')"><span class="s1">MLST</span><span class="s2">MLST 外匯策略系統</span></button>
         <button class="strat-btn" onclick="toggleStrat(this,'布林均線')"><span class="s1">布林均線</span><span class="s2">均線 + 布林通道</span></button>
+        <button class="strat-btn" onclick="toggleStrat(this,'短黃金策略')"><span class="s1">短黃金策略</span><span class="s2">黃金短單策略</span></button>
         <button class="strat-btn" onclick="toggleStrat(this,'其他策略')"><span class="s1">其他策略</span><span class="s2">不在上述分類</span></button>
       </div>
       <div class="strat-selected" id="strat-selected">尚未選擇策略</div>
@@ -495,26 +505,21 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
   <div class="stat-grid" id="stat-grid"></div>
   <div class="chart-wrap"><div class="chart-title">損益曲線（累積 USD）</div><div class="chart-container"><canvas id="chart-pnl"></canvas></div></div>
 
-  <!-- PNL CALENDAR -->
-  <div class="chart-wrap" style="padding:14px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-      <div class="chart-title" style="margin-bottom:0">盈虧日曆</div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <button class="cal-nav-btn" onclick="calPrev()">&#8249;</button>
-        <span id="cal-label" style="font-size:13px;font-weight:600;min-width:90px;text-align:center"></span>
-        <button class="cal-nav-btn" onclick="calNext()">&#8250;</button>
-        <button class="cal-nav-btn" onclick="calToday()" style="width:auto;padding:0 10px;font-size:11px">今月</button>
-      </div>
-    </div>
-    <div class="cal-grid" id="cal-grid"></div>
-    <!-- Monthly summary -->
-    <div id="cal-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"></div>
-    <!-- Legend -->
-    <div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap">
-      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><span style="width:12px;height:12px;border-radius:3px;background:var(--green-bg);border:1px solid var(--green);display:inline-block"></span>獲利日</span>
-      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><span style="width:12px;height:12px;border-radius:3px;background:var(--red-bg);border:1px solid var(--red);display:inline-block"></span>虧損日</span>
-      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><span style="width:12px;height:12px;border-radius:3px;background:var(--bg3);border:1px solid var(--border2);display:inline-block"></span>平保/交易日</span>
-    </div>
+  <!-- WIN RATE ANALYSIS SECTIONS -->
+  <!-- DOW Win Rate -->
+  <div class="strat-filter-section" id="dow-section" style="display:none">
+    <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">星期勝率分析</div>
+    <div id="dow-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px"></div>
+  </div>
+  <!-- Time Period Win Rate -->
+  <div class="strat-filter-section" id="timeslot-section" style="display:none">
+    <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">時段勝率分析</div>
+    <div id="timeslot-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px"></div>
+  </div>
+  <!-- Long/Short Win Rate -->
+  <div class="strat-filter-section" id="longshort-section" style="display:none">
+    <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">做多做空勝率分析</div>
+    <div id="longshort-stats" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
   </div>
 
   <div class="strat-filter-section">
@@ -523,6 +528,7 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
       <button class="sf-btn on" onclick="setSF(this,'all')">全部</button>
       <button class="sf-btn" onclick="setSF(this,'MLST')">MLST</button>
       <button class="sf-btn" onclick="setSF(this,'布林均線')">布林均線</button>
+      <button class="sf-btn" onclick="setSF(this,'短黃金策略')">短黃金策略</button>
       <button class="sf-btn" onclick="setSF(this,'其他策略')">其他策略</button>
     </div>
     <div class="strat-stats">
@@ -534,6 +540,12 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
     <div class="chart-wrap" style="margin-top:12px;margin-bottom:0"><div class="chart-title">策略篩選損益曲線</div><div class="chart-container"><canvas id="chart-sf"></canvas></div></div>
   </div>
   <div class="chart-wrap"><div class="chart-title">各策略損益比較</div><div class="chart-container"><canvas id="chart-strat"></canvas></div></div>
+  <div class="chart-wrap"><div class="chart-title">月盈虧分佈（USD）</div><div class="chart-container"><canvas id="chart-monthly"></canvas></div></div>
+  <!-- Emotion stats -->
+  <div class="strat-filter-section" id="emotion-section" style="display:none">
+    <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">情緒分析</div>
+    <div id="emotion-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px"></div>
+  </div>
 </div>
 
 <!-- DETAIL MODAL -->
@@ -1165,19 +1177,36 @@ function renderRep(){
   const list=filterT(trades,repF),n=list.length;
   if(!n){
     document.getElementById('stat-grid').innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-icon">📊</div><div>尚無紀錄</div></div>';
-    [pnlChart,sfChart,stratChart].forEach(c=>{if(c)c.destroy();});pnlChart=sfChart=stratChart=null;return;
+    [pnlChart,sfChart,stratChart].forEach(c=>{if(c)c.destroy();});pnlChart=sfChart=stratChart=null;
+    return;
   }
-  const wins=list.filter(t=>(t.netPnl||0)>0).length;
-  const total=list.reduce((s,t)=>s+(t.netPnl||0),0);
-  const avg=total/n,maxL=Math.min(...list.map(t=>t.netPnl||0));
-  const avgScore=list.reduce((s,t)=>s+(t.score||0),0)/n;
-  const wr=Math.round(wins/n*100);
+  const closedList=list.filter(t=>t.status==='closed'||t.netPnl);
+  const wins=closedList.filter(t=>(t.netPnl||0)>0).length;
+  const losses=closedList.filter(t=>(t.netPnl||0)<0).length;
+  const total=closedList.reduce((s,t)=>s+(t.netPnl||0),0);
+  const avg=closedList.length?total/closedList.length:0;
+  const maxL=closedList.length?Math.min(...closedList.map(t=>t.netPnl||0)):0;
+  const maxW=closedList.length?Math.max(...closedList.map(t=>t.netPnl||0)):0;
+  const avgScore=closedList.reduce((s,t)=>s+(t.score||0),0)/(closedList.length||1);
+  const wr=closedList.length?Math.round(wins/closedList.length*100):0;
+  // Max drawdown
+  const sorted0=[...closedList].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  let peak=0,cum0=0,maxDD=0;
+  sorted0.forEach(t=>{cum0+=t.netPnl||0;if(cum0>peak)peak=cum0;const dd=peak-cum0;if(dd>maxDD)maxDD=dd;});
+  // Profit factor
+  const grossW=closedList.filter(t=>(t.netPnl||0)>0).reduce((s,t)=>s+(t.netPnl||0),0);
+  const grossL=Math.abs(closedList.filter(t=>(t.netPnl||0)<0).reduce((s,t)=>s+(t.netPnl||0),0));
+  const pf=grossL>0?(grossW/grossL).toFixed(2):'∞';
+  const openCount=list.filter(t=>t.status==='open'&&!(t.netPnl)).length;
   document.getElementById('stat-grid').innerHTML=`
-    <div class="stat-card"><div class="stat-lbl">總筆數</div><div class="stat-val">${n}</div></div>
-    <div class="stat-card"><div class="stat-lbl">勝率</div><div class="stat-val ${wr>=50?'pos':'neg'}">${wr}%</div></div>
+    <div class="stat-card"><div class="stat-lbl">總筆數</div><div class="stat-val">${closedList.length}${openCount?`<span style="font-size:11px;color:var(--amber);font-weight:400"> +${openCount}持倉</span>`:''}</div></div>
+    <div class="stat-card"><div class="stat-lbl">勝率</div><div class="stat-val ${wr>=50?'pos':'neg'}">${wr}%<span style="font-size:11px;font-weight:400;color:var(--text3)"> ${wins}W/${losses}L</span></div></div>
     <div class="stat-card"><div class="stat-lbl">總損益</div><div class="stat-val ${total>=0?'pos':'neg'}">${total>=0?'+':''}${total.toFixed(2)}<span style="font-size:11px;font-weight:400"> USD</span></div></div>
     <div class="stat-card"><div class="stat-lbl">平均損益</div><div class="stat-val ${avg>=0?'pos':'neg'}">${avg>=0?'+':''}${avg.toFixed(2)}<span style="font-size:11px;font-weight:400"> USD</span></div></div>
+    <div class="stat-card"><div class="stat-lbl">獲利因子</div><div class="stat-val ${parseFloat(pf)>=1||pf==='∞'?'pos':'neg'}">${pf}</div></div>
+    <div class="stat-card"><div class="stat-lbl">最大回撤</div><div class="stat-val neg">-${maxDD.toFixed(2)}<span style="font-size:11px;font-weight:400"> USD</span></div></div>
     <div class="stat-card"><div class="stat-lbl">最大單筆虧損</div><div class="stat-val neg">${maxL.toFixed(2)}<span style="font-size:11px;font-weight:400"> USD</span></div></div>
+    <div class="stat-card"><div class="stat-lbl">最大單筆獲利</div><div class="stat-val pos">+${maxW.toFixed(2)}<span style="font-size:11px;font-weight:400"> USD</span></div></div>
     <div class="stat-card"><div class="stat-lbl">平均評分</div><div class="stat-val pu">${avgScore.toFixed(1)}<span style="font-size:11px;font-weight:400"> /100</span></div></div>`;
 
   const sorted=[...list].sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -1206,7 +1235,123 @@ function renderRep(){
   if(stratChart)stratChart.destroy();
   if(sl2.length)stratChart=new Chart(document.getElementById('chart-strat'),{type:'bar',data:{labels:sl2,datasets:[{data:sp,backgroundColor:sp.map(v=>v>=0?'rgba(217,119,6,.7)':'rgba(220,38,38,.7)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const k=sl2[ctx.dataIndex];const d=sm[k];return[`損益：${sp[ctx.dataIndex]>=0?'+':''}${sp[ctx.dataIndex].toFixed(2)} USD`,`筆數：${d.n}`,`勝率：${Math.round(d.wins/d.n*100)}%`];}}}},scales:{x:{ticks:{color:'#96a0b5'},grid:{color:'#e2e6ed'}},y:{ticks:{color:'#96a0b5'},grid:{color:'#e2e6ed'}}}}});
 
-  drawCalendar(list);
+  // DOW Win Rate Analysis
+  const dowSec=document.getElementById('dow-section');
+  const dowStats=document.getElementById('dow-stats');
+  if(dowSec&&dowStats){
+    const DOW_NAMES=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+    const dowMap={};
+    closedList.forEach(t=>{
+      if(!t.date)return;
+      const dow=new Date(t.date+'T12:00:00').getDay();
+      if(!dowMap[dow])dowMap[dow]={n:0,wins:0,pnl:0};
+      dowMap[dow].n++;if((t.netPnl||0)>0)dowMap[dow].wins++;dowMap[dow].pnl+=t.netPnl||0;
+    });
+    const dowEntries=Object.entries(dowMap).sort((a,b)=>a[0]-b[0]);
+    if(dowEntries.length){
+      dowSec.style.display='block';
+      dowStats.innerHTML=dowEntries.map(([dow,d])=>{
+        const wr2=Math.round(d.wins/d.n*100);
+        return`<div class="ss-card"><div class="ss-lbl">${DOW_NAMES[dow]}</div>
+          <div class="ss-val ${wr2>=50?'pos':'neg'}">${wr2}%</div>
+          <div style="font-size:10px;color:var(--text3)">${d.wins}W/${d.n-d.wins}L</div>
+          <div style="font-size:10px;color:${d.pnl>=0?'var(--green)':'var(--red)'};">${d.pnl>=0?'+':''}${d.pnl.toFixed(2)}</div></div>`;
+      }).join('');
+    } else { dowSec.style.display='none'; }
+  }
+
+  // Time Slot Win Rate Analysis
+  const tsSec=document.getElementById('timeslot-section');
+  const tsStats=document.getElementById('timeslot-stats');
+  if(tsSec&&tsStats){
+    const SLOTS=[
+      {key:'亞盤',label:'亞盤',hint:'00:00–08:00',start:0,end:8},
+      {key:'歐盤早盤',label:'歐盤早盤',hint:'08:00–13:00',start:8,end:13},
+      {key:'歐美盤',label:'歐美盤',hint:'13:00–20:00',start:13,end:20},
+      {key:'美盤',label:'美盤',hint:'20:00–24:00',start:20,end:24},
+    ];
+    const tsMap={};SLOTS.forEach(s=>tsMap[s.key]={n:0,wins:0,pnl:0});
+    closedList.forEach(t=>{
+      if(!t.etime)return;
+      const h=parseInt((t.etime||'').split(':')[0])||0;
+      const slot=SLOTS.find(s=>h>=s.start&&h<s.end)||SLOTS[0];
+      tsMap[slot.key].n++;if((t.netPnl||0)>0)tsMap[slot.key].wins++;tsMap[slot.key].pnl+=t.netPnl||0;
+    });
+    const tsEntries=SLOTS.filter(s=>tsMap[s.key].n>0);
+    if(tsEntries.length){
+      tsSec.style.display='block';
+      tsStats.innerHTML=tsEntries.map(s=>{
+        const d=tsMap[s.key];const wr2=Math.round(d.wins/d.n*100);
+        return`<div class="ss-card"><div class="ss-lbl">${s.label}</div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px">${s.hint}</div>
+          <div class="ss-val ${wr2>=50?'pos':'neg'}">${wr2}%</div>
+          <div style="font-size:10px;color:var(--text3)">${d.wins}W/${d.n-d.wins}L / ${d.n}筆</div>
+          <div style="font-size:11px;font-weight:600;color:${d.pnl>=0?'var(--green)':'var(--red)'};">${d.pnl>=0?'+':''}${d.pnl.toFixed(2)} USD</div></div>`;
+      }).join('');
+    } else { tsSec.style.display='none'; }
+  }
+
+  // Long/Short Win Rate Analysis
+  const lsSec=document.getElementById('longshort-section');
+  const lsStats=document.getElementById('longshort-stats');
+  if(lsSec&&lsStats){
+    const lsMap={'做多':{n:0,wins:0,pnl:0},'做空':{n:0,wins:0,pnl:0}};
+    closedList.forEach(t=>{
+      const dir=t.dir==='做多'?'做多':'做空';
+      lsMap[dir].n++;if((t.netPnl||0)>0)lsMap[dir].wins++;lsMap[dir].pnl+=t.netPnl||0;
+    });
+    const lsEntries=Object.entries(lsMap).filter(([,d])=>d.n>0);
+    if(lsEntries.length){
+      lsSec.style.display='block';
+      lsStats.innerHTML=lsEntries.map(([dir,d])=>{
+        const wr2=Math.round(d.wins/d.n*100);
+        const color=dir==='做多'?'var(--green)':'var(--red)';
+        return`<div class="ss-card">
+          <div class="ss-lbl" style="color:${color};font-size:13px;font-weight:700">${dir}</div>
+          <div class="ss-val ${wr2>=50?'pos':'neg'}">${wr2}%</div>
+          <div style="font-size:10px;color:var(--text3)">${d.wins}W / ${d.n-d.wins}L / ${d.n}筆</div>
+          <div style="font-size:11px;font-weight:600;color:${d.pnl>=0?'var(--green)':'var(--red)'};">${d.pnl>=0?'+':''}${d.pnl.toFixed(2)} USD</div></div>`;
+      }).join('');
+    } else { lsSec.style.display='none'; }
+  }
+
+  // Monthly PnL bar chart
+  const monthlyMap={};
+  closedList.forEach(t=>{
+    if(!t.date)return;
+    const ym=t.date.slice(0,7);
+    if(!monthlyMap[ym])monthlyMap[ym]=0;
+    monthlyMap[ym]+=t.netPnl||0;
+  });
+  const ymKeys=Object.keys(monthlyMap).sort();
+  const ymVals=ymKeys.map(k=>parseFloat(monthlyMap[k].toFixed(2)));
+  if(window.monthlyChart)window.monthlyChart.destroy();
+  const mcEl=document.getElementById('chart-monthly');
+  if(mcEl&&ymKeys.length){
+    window.monthlyChart=new Chart(mcEl,{type:'bar',data:{labels:ymKeys,datasets:[{data:ymVals,backgroundColor:ymVals.map(v=>v>=0?'rgba(217,119,6,.7)':'rgba(220,38,38,.65)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw>=0?'+':''}${ctx.raw.toFixed(2)} USD`}}},scales:{x:{ticks:{color:'#96a0b5',font:{size:10}},grid:{color:'#e2e6ed'}},y:{ticks:{color:'#96a0b5',font:{size:10}},grid:{color:'#e2e6ed'}}}}});
+  }
+
+  // Emotion analysis
+  const emSec=document.getElementById('emotion-section');
+  const emStats=document.getElementById('emotion-stats');
+  if(emSec&&emStats){
+    const emMap={};
+    closedList.forEach(t=>{
+      const em=t.emotion||'未記錄';
+      if(!emMap[em])emMap[em]={n:0,wins:0,pnl:0};
+      emMap[em].n++;if((t.netPnl||0)>0)emMap[em].wins++;emMap[em].pnl+=t.netPnl||0;
+    });
+    const emEntries=Object.entries(emMap).sort((a,b)=>b[1].n-a[1].n);
+    if(emEntries.length){
+      emSec.style.display='block';
+      emStats.innerHTML=emEntries.map(([em,d])=>{
+        const wr2=Math.round(d.wins/d.n*100);
+        return`<div class="ss-card"><div class="ss-lbl" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${em}</div>
+          <div style="font-size:13px;font-weight:700;color:${d.pnl>=0?'var(--green)':'var(--red)'}">${d.pnl>=0?'+':''}${d.pnl.toFixed(2)}</div>
+          <div style="font-size:10px;color:var(--text3)">${d.n}筆 / 勝率${wr2}%</div></div>`;
+      }).join('');
+    } else { emSec.style.display='none'; }
+  }
 }
 
 function exportCSV(){
@@ -1226,6 +1371,8 @@ function clearAll(){if(!confirm('確定清除所有紀錄？'))return;trades=[];
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 const MONTH_NAMES=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 
+function openCalModal(){ drawCalendar(filterT(trades,repF)); document.getElementById('cal-modal').classList.add('show'); }
+function closeCalModal(){ document.getElementById('cal-modal').classList.remove('show'); }
 function calPrev(){ calMonth--; if(calMonth<0){calMonth=11;calYear--;} drawCalendar(filterT(trades,repF)); }
 function calNext(){ calMonth++; if(calMonth>11){calMonth=0;calYear++;} drawCalendar(filterT(trades,repF)); }
 function calToday(){ calYear=new Date().getFullYear(); calMonth=new Date().getMonth(); drawCalendar(filterT(trades,repF)); }
@@ -1326,14 +1473,23 @@ function drawCalendar(list){
 // ===== INIT =====
 document.getElementById('detail-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
 document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeEditModal();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeEditModal();closeLb();}});
+document.getElementById('cal-modal').addEventListener('click',function(e){if(e.target===this)closeCalModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeEditModal();closeCalModal();closeLb();}});
 
 // ===== INIT =====
 // Edit modal paste listener
 
 
-if(window._fbReady){initFirebase();}
-else{window.addEventListener('fb-ready',initFirebase,{once:true});setTimeout(()=>{if(!window._fbReady)setSyncStatus('offline','離線模式');},5000);}
+function tryInitFirebase(){
+  if(window._fbReady){initFirebase();}
+  else{window.addEventListener('fb-ready',initFirebase,{once:true});setTimeout(()=>{if(!window._fbReady)setSyncStatus('offline','離線模式');},6000);}
+}
+// Module scripts run async — wait one tick to let them settle first
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(tryInitFirebase,0));
+}else{
+  setTimeout(tryInitFirebase,0);
+}
 saveLS();
 
 // Exit modal paste listener — catches Ctrl+V regardless of focus
@@ -1344,6 +1500,30 @@ document.getElementById('exit-modal').addEventListener('paste',function(e){
   handleExitModalFiles(items.map(i=>i.getAsFile()).filter(Boolean));
 });
 </script>
+
+<!-- CAL MODAL -->
+<div class="modal-overlay" id="cal-modal">
+  <div class="modal" style="max-width:520px;width:96%">
+    <div class="modal-title">
+      <span>📅 盈虧日曆</span>
+      <button class="modal-close" onclick="closeCalModal()">×</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <button class="cal-nav-btn" onclick="calPrev()">&#8249;</button>
+        <span id="cal-label" style="font-size:13px;font-weight:600;min-width:90px;text-align:center"></span>
+        <button class="cal-nav-btn" onclick="calNext()">&#8250;</button>
+        <button class="cal-nav-btn" onclick="calToday()" style="width:auto;padding:0 10px;font-size:11px">今月</button>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--green-bg);border:1px solid var(--green);display:inline-block"></span>獲利</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--red-bg);border:1px solid var(--red);display:inline-block"></span>虧損</span>
+      </div>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div id="cal-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"></div>
+  </div>
+</div>
 
 <!-- EXIT MODAL -->
 <div class="modal-overlay" id="exit-modal">
