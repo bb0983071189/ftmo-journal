@@ -1471,33 +1471,29 @@ function drawCalendar(list){
 }
 
 // ===== INIT =====
-document.getElementById('detail-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
-document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeEditModal();});
-document.getElementById('cal-modal').addEventListener('click',function(e){if(e.target===this)closeCalModal();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeEditModal();closeCalModal();closeLb();}});
-
-// ===== INIT =====
-// Edit modal paste listener
-
-
 function tryInitFirebase(){
   if(window._fbReady){initFirebase();}
   else{window.addEventListener('fb-ready',initFirebase,{once:true});setTimeout(()=>{if(!window._fbReady)setSyncStatus('offline','離線模式');},6000);}
 }
-// Module scripts run async — wait one tick to let them settle first
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',()=>setTimeout(tryInitFirebase,0));
-}else{
-  setTimeout(tryInitFirebase,0);
-}
-saveLS();
 
-// Exit modal paste listener — catches Ctrl+V regardless of focus
-document.getElementById('exit-modal').addEventListener('paste',function(e){
-  const items=Array.from(e.clipboardData?.items||[]).filter(i=>i.type.startsWith('image/'));
-  if(!items.length)return;
-  e.stopPropagation();
-  handleExitModalFiles(items.map(i=>i.getAsFile()).filter(Boolean));
+document.addEventListener('DOMContentLoaded',function(){
+  // Modal backdrop click
+  document.getElementById('detail-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+  document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeEditModal();});
+  document.getElementById('cal-modal').addEventListener('click',function(e){if(e.target===this)closeCalModal();});
+  document.getElementById('exit-modal').addEventListener('click',function(e){if(e.target===this)closeExitModal();});
+  // Exit modal paste
+  document.getElementById('exit-modal').addEventListener('paste',function(e){
+    const items=Array.from(e.clipboardData?.items||[]).filter(i=>i.type.startsWith('image/'));
+    if(!items.length)return;
+    e.stopPropagation();
+    handleExitModalFiles(items.map(i=>i.getAsFile()).filter(Boolean));
+  });
+  // Keyboard
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeEditModal();closeCalModal();closeLb();}});
+  // Firebase
+  setTimeout(tryInitFirebase,0);
+  saveLS();
 });
 </script>
 
